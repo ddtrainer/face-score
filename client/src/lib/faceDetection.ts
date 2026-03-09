@@ -1,4 +1,4 @@
-export type FaceFailureReason =
+﻿export type FaceFailureReason =
   | "NO_FACE"
   | "MULTIPLE_FACES"
   | "LOW_QUALITY"
@@ -12,7 +12,7 @@ export interface FaceValidationResult {
   faceCount: number;
 }
 
-const MIN_FACE_AREA_RATIO = 0.05;
+const MIN_FACE_AREA_RATIO = 0.02;
 
 export function getFailureMessage(reason: FaceFailureReason): { title: string; description: string } {
   switch (reason) {
@@ -74,14 +74,14 @@ async function detectFacesWithAPI(source: HTMLCanvasElement | HTMLImageElement):
 }
 
 function isSkinPixel(r: number, g: number, b: number): boolean {
-  if (r < 55 || g < 25 || b < 15) return false;
+  if (r < 40 || g < 20 || b < 10) return false;
   if (r < g || r < b) return false;
   const max = Math.max(r, g, b);
   const min = Math.min(r, g, b);
-  if (max - min < 15) return false;
-  if (r - g < 8) return false;
+  if (max - min < 10) return false;
+  if (r - g < 4) return false;
   const brightness = (r + g + b) / 3;
-  return brightness >= 45 && brightness <= 240;
+  return brightness >= 20 && brightness <= 250;
 }
 
 function detectFaceWithHeuristic(imageData: ImageData): { hasFace: boolean; reason: FaceFailureReason } {
@@ -113,7 +113,7 @@ function detectFaceWithHeuristic(imageData: ImageData): { hasFace: boolean; reas
   const sampledPixels = Math.ceil(width / 2) * Math.ceil(height / 2);
   const skinRatio = sampledPixels > 0 ? skinCount / sampledPixels : 0;
 
-  if (skinRatio < 0.12 || skinRatio > 0.78) {
+  if (skinRatio < 0.04 || skinRatio > 0.92) {
     return { hasFace: false, reason: "NO_FACE" };
   }
 
@@ -132,30 +132,8 @@ function detectFaceWithHeuristic(imageData: ImageData): { hasFace: boolean; reas
   const centerX = (minX + maxX) / 2 / width;
   const centerY = (minY + maxY) / 2 / height;
 
-  if (centerX < 0.15 || centerX > 0.85 || centerY < 0.1 || centerY > 0.9) {
+  if (centerX < 0.1 || centerX > 0.9 || centerY < 0.05 || centerY > 0.95) {
     return { hasFace: false, reason: "FACE_NOT_FRONTAL" };
-  }
-
-  let leftSkin = 0;
-  let rightSkin = 0;
-  const midX = Math.floor((minX + maxX) / 2);
-
-  for (let y = minY; y <= maxY; y += 2) {
-    for (let x = minX; x <= maxX; x += 2) {
-      const idx = (y * width + x) * 4;
-      if (isSkinPixel(data[idx], data[idx + 1], data[idx + 2])) {
-        if (x <= midX) leftSkin++;
-        else rightSkin++;
-      }
-    }
-  }
-
-  const smaller = Math.min(leftSkin, rightSkin);
-  const larger = Math.max(leftSkin, rightSkin);
-  const symmetry = larger > 0 ? smaller / larger : 0;
-
-  if (symmetry < 0.35) {
-    return { hasFace: false, reason: "NO_FACE" };
   }
 
   return { hasFace: true, reason: "NO_FACE" };
@@ -184,7 +162,7 @@ function checkImageQuality(imageData: ImageData): { passes: boolean; reason: Fac
   }
 
   const avgLum = luminanceSum / sampleCount;
-  if (avgLum < 25 || avgLum > 245) {
+  if (avgLum < 10 || avgLum > 250) {
     return { passes: false, reason: "LOW_QUALITY" };
   }
 
@@ -200,30 +178,34 @@ async function validateCanvasFace(canvas: HTMLCanvasElement, imageData: ImageDat
   const apiResult = await detectFacesWithAPI(canvas);
 
   if (apiResult.available) {
-    if (apiResult.faceCount === 0) {
-      return { success: false, reason: "NO_FACE", faceCount: 0 };
-    }
-
     if (apiResult.faceCount > 1) {
       return { success: false, reason: "MULTIPLE_FACES", faceCount: apiResult.faceCount };
     }
 
-    const face = apiResult.faces[0];
-    const faceArea = face.width * face.height;
-    const imageArea = canvas.width * canvas.height;
+    if (apiResult.faceCount === 1) {
+      const face = apiResult.faces[0];
+      const faceArea = face.width * face.height;
+      const imageArea = canvas.width * canvas.height;
 
-    if (faceArea / imageArea < MIN_FACE_AREA_RATIO) {
-      return { success: false, reason: "FACE_TOO_SMALL", faceCount: 1 };
+      if (faceArea / imageArea < MIN_FACE_AREA_RATIO) {
+        const fallbackSmall = detectFaceWithHeuristic(imageData);
+        if (!fallbackSmall.hasFace) {
+          return { success: false, reason: "FACE_TOO_SMALL", faceCount: 1 };
+        }
+      }
+
+      const faceCenterX = (face.x + face.width / 2) / canvas.width;
+      const faceCenterY = (face.y + face.height / 2) / canvas.height;
+
+      if (faceCenterX < 0.1 || faceCenterX > 0.9 || faceCenterY < 0.05 || faceCenterY > 0.95) {
+        const fallbackFrontal = detectFaceWithHeuristic(imageData);
+        if (!fallbackFrontal.hasFace) {
+          return { success: false, reason: "FACE_NOT_FRONTAL", faceCount: 1 };
+        }
+      }
+
+      return { success: true, reason: null, faceCount: 1 };
     }
-
-    const faceCenterX = (face.x + face.width / 2) / canvas.width;
-    const faceCenterY = (face.y + face.height / 2) / canvas.height;
-
-    if (faceCenterX < 0.15 || faceCenterX > 0.85 || faceCenterY < 0.1 || faceCenterY > 0.9) {
-      return { success: false, reason: "FACE_NOT_FRONTAL", faceCount: 1 };
-    }
-
-    return { success: true, reason: null, faceCount: 1 };
   }
 
   const heuristic = detectFaceWithHeuristic(imageData);

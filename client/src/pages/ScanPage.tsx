@@ -1,4 +1,4 @@
-﻿import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion, AnimatePresence } from "framer-motion";
 import { Upload, AlertCircle, RotateCcw, Camera, UserX, Users } from "lucide-react";
@@ -138,7 +138,7 @@ export default function ScanPage() {
                 }
 
                 const total = passCount + failCount;
-                if (passCount === 0 || passCount < Math.ceil(total / 2)) {
+                if (passCount < 2 && passCount <= failCount) {
                   handleFailure(lastFailReason);
                   return;
                 }
