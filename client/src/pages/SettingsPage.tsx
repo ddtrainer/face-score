@@ -30,7 +30,7 @@ export default function SettingsPage() {
             </div>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-app-intro">
-            매일 한 장의 사진으로 나만의 인상을 체크하고, 맞춤 코칭을 받아보세요. 꾸준히 기록하면 작은 변화가 눈에 보일 거예요.
+            매일 3초 셀피 스캔으로 나만의 인상을 체크하고, 맞춤 코칭을 받아보세요. 꾸준히 기록하면 작은 변화가 눈에 보일 거예요.
           </p>
         </Card>
       </motion.div>
@@ -49,8 +49,8 @@ export default function SettingsPage() {
           </div>
           <ul className="space-y-3" data-testid="text-privacy-policy">
             {[
-              "사진은 분석 후 바로 삭제돼요. 서버에 저장되지 않으니 안심하세요.",
-              "점수 기록만 기기에 안전하게 보관돼요.",
+              "얼굴 영상이나 사진은 저장하지 않아요. 분석 후 즉시 삭제돼요.",
+              "저장되는 데이터는 점수와 분석 결과만이에요.",
               "저장 버튼을 누를 때만 기록이 남아요.",
               "이 결과는 재미와 자기관리를 위한 참고용이에요.",
             ].map((text, i) => (
@@ -129,7 +129,7 @@ export default function SettingsPage() {
         className="flex items-center justify-center gap-2 text-xs text-muted-foreground/50 pt-4 pb-6"
       >
         <Info className="w-3.5 h-3.5" />
-        <span>Face Score v1.0</span>
+        <span>Face Score v2.0</span>
       </motion.div>
     </div>
   );

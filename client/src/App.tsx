@@ -7,6 +7,7 @@ import { AppStateProvider } from "@/lib/appState";
 import Header from "@/components/Header";
 import BottomNavigation from "@/components/BottomNavigation";
 import HomePage from "@/pages/HomePage";
+import ScanPage from "@/pages/ScanPage";
 import ResultPage from "@/pages/ResultPage";
 import HistoryPage from "@/pages/HistoryPage";
 import SettingsPage from "@/pages/SettingsPage";
@@ -19,6 +20,9 @@ function AppContent() {
         <Switch>
           <Route path="/">
             <HomePage />
+          </Route>
+          <Route path="/scan">
+            <ScanPage />
           </Route>
           <Route path="/result">
             <ResultPage />

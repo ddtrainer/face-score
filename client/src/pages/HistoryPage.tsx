@@ -35,7 +35,7 @@ export default function HistoryPage() {
         <div className="flex justify-center mt-6">
           <Button
             className="gap-2 rounded-xl h-12 px-8 bg-gradient-to-r from-violet-600 to-indigo-500"
-            onClick={() => setLocation("/")}
+            onClick={() => setLocation("/scan")}
             data-testid="button-start-analysis"
           >
             <ArrowUpRight className="w-4 h-4" />
@@ -154,10 +154,11 @@ export default function HistoryPage() {
                     })}
                   </p>
                   <p className="text-sm font-semibold truncate mt-1">{record.summary}</p>
-                  <div className="flex gap-3 mt-2 text-[11px] text-muted-foreground font-medium">
+                  <div className="flex flex-wrap gap-2 mt-2 text-[11px] text-muted-foreground font-medium">
                     <span className="bg-violet-50 dark:bg-violet-500/10 px-2 py-0.5 rounded-md">친근함 {record.friendliness}</span>
                     <span className="bg-blue-50 dark:bg-blue-500/10 px-2 py-0.5 rounded-md">생기 {record.vitality}</span>
                     <span className="bg-indigo-50 dark:bg-indigo-500/10 px-2 py-0.5 rounded-md">자신감 {record.confidence}</span>
+                    <span className="bg-emerald-50 dark:bg-emerald-500/10 px-2 py-0.5 rounded-md">안정감 {record.stability ?? "-"}</span>
                   </div>
                 </div>
               </div>

@@ -8,60 +8,68 @@ function pick<T>(arr: T[]): T {
   return arr[Math.floor(Math.random() * arr.length)];
 }
 
-// 여기에 실제 AI API 연결 가능
-// Replace this function with a real AI API call to analyze the uploaded face image
-export async function analyzeFaceMock(_imageData?: string): Promise<AnalysisResult> {
+export async function analyzeFaceFrames(_frames?: ImageData[]): Promise<AnalysisResult> {
   const friendliness = randomInRange(55, 95);
   const vitality = randomInRange(50, 92);
   const confidence = randomInRange(52, 93);
-  const totalScore = Math.round((friendliness + vitality + confidence) / 3);
+  const stability = randomInRange(50, 90);
+  const totalScore = Math.round((friendliness + vitality + confidence + stability) / 4);
 
-  const summary = generateSummary(totalScore, friendliness, vitality, confidence);
-  const tips = generateTips(totalScore, friendliness, vitality, confidence);
+  const summary = generateSummary(totalScore, friendliness, vitality, confidence, stability);
+  const tips = generateTips(totalScore, friendliness, vitality, confidence, stability);
 
   return {
     friendliness,
     vitality,
     confidence,
+    stability,
     totalScore,
     summary,
     tips,
   };
 }
 
-function findWeakest(f: number, v: number, c: number): "friendliness" | "vitality" | "confidence" {
-  if (f <= v && f <= c) return "friendliness";
-  if (v <= f && v <= c) return "vitality";
-  return "confidence";
+type Trait = "friendliness" | "vitality" | "confidence" | "stability";
+
+function findWeakest(f: number, v: number, c: number, s: number): Trait {
+  const min = Math.min(f, v, c, s);
+  if (f === min) return "friendliness";
+  if (v === min) return "vitality";
+  if (c === min) return "confidence";
+  return "stability";
 }
 
-function findStrongest(f: number, v: number, c: number): "friendliness" | "vitality" | "confidence" {
-  if (f >= v && f >= c) return "friendliness";
-  if (v >= f && v >= c) return "vitality";
-  return "confidence";
+function findStrongest(f: number, v: number, c: number, s: number): Trait {
+  const max = Math.max(f, v, c, s);
+  if (f === max) return "friendliness";
+  if (v === max) return "vitality";
+  if (c === max) return "confidence";
+  return "stability";
 }
 
 export function generateSummary(
   total: number,
   friendliness: number,
   vitality: number,
-  confidence: number
+  confidence: number,
+  stability: number
 ): string {
-  const strongest = findStrongest(friendliness, vitality, confidence);
+  const strongest = findStrongest(friendliness, vitality, confidence, stability);
 
   if (total >= 90) {
     return pick([
       "오늘 표정에서 따뜻함이 가득 느껴져요. 주변 사람들에게 좋은 에너지를 전할 수 있는 하루예요!",
-      "친근함, 생기, 자신감이 모두 조화롭게 빛나고 있어요. 이 느낌 그대로 하루를 보내 보세요!",
+      "친근함, 생기, 자신감, 안정감이 모두 조화롭게 빛나고 있어요. 이 느낌 그대로 하루를 보내 보세요!",
       "지금 표정이 정말 멋져요! 편안하면서도 밝은 인상이 자연스럽게 전해지고 있어요.",
     ]);
   }
 
   if (total >= 80) {
-    const strongLabels = {
+    const strongLabels: Record<Trait, string> = {
       friendliness: "부드럽고 다가가기 편한 느낌",
       vitality: "활기차고 생동감 넘치는 느낌",
       confidence: "당당하고 신뢰감을 주는 느낌",
+      stability: "차분하고 안정감 있는 느낌",
     };
     return pick([
       `오늘은 ${strongLabels[strongest]}이 특히 돋보여요. 작은 표정 변화만으로도 더 빛날 수 있어요!`,
@@ -71,7 +79,7 @@ export function generateSummary(
   }
 
   if (total >= 70) {
-    const weakest = findWeakest(friendliness, vitality, confidence);
+    const weakest = findWeakest(friendliness, vitality, confidence, stability);
     if (weakest === "friendliness") {
       return pick([
         "차분하고 진중한 인상이에요. 살짝 미소를 더하면 한결 부드러운 느낌을 줄 수 있어요.",
@@ -84,9 +92,15 @@ export function generateSummary(
         "차분한 매력이 있는 인상이에요. 약간의 생기만 더해지면 훨씬 좋아질 수 있어요.",
       ]);
     }
+    if (weakest === "confidence") {
+      return pick([
+        "친근하고 따뜻한 인상이에요. 시선을 살짝 높이면 더 당당한 느낌을 줄 수 있어요.",
+        "부드러운 분위기가 좋아요. 바른 자세와 함께하면 인상이 한층 더 좋아질 거예요.",
+      ]);
+    }
     return pick([
-      "친근하고 따뜻한 인상이에요. 시선을 살짝 높이면 더 당당한 느낌을 줄 수 있어요.",
-      "부드러운 분위기가 좋아요. 바른 자세와 함께하면 인상이 한층 더 좋아질 거예요.",
+      "밝고 활기찬 인상이에요. 호흡을 가다듬으면 더 안정감 있는 느낌을 줄 수 있어요.",
+      "에너지가 느껴지는 표정이에요. 살짝 여유를 더하면 균형 잡힌 인상이 될 거예요.",
     ]);
   }
 
@@ -109,7 +123,8 @@ export function generateTips(
   total: number,
   friendliness: number,
   vitality: number,
-  confidence: number
+  confidence: number,
+  stability: number
 ): string[] {
   const tips: string[] = [];
 
@@ -117,6 +132,7 @@ export function generateTips(
     if (friendliness >= 80) tips.push("지금의 따뜻한 미소가 정말 좋아요. 하루 종일 유지해 보세요!");
     if (vitality >= 80) tips.push("생기 넘치는 표정이 매력적이에요. 이 컨디션을 잘 기억해 두세요.");
     if (confidence >= 80) tips.push("당당한 눈빛이 인상적이에요. 이 자신감 그대로 유지해 보세요!");
+    if (stability >= 80) tips.push("안정감 있는 표정이 돋보여요. 이 여유로움을 유지해 보세요!");
     tips.push("거울을 볼 때 가볍게 미소 짓는 습관을 들이면 표정 근육이 자연스러워져요.");
     tips.push("따뜻한 조명 아래에서 거울을 보며 자신의 장점을 한 가지 찾아보세요.");
     tips.push("좋은 인상을 유지하는 비결은 충분한 수면이에요. 오늘 일찍 쉬어 보세요!");
@@ -139,6 +155,11 @@ export function generateTips(
     } else {
       tips.push("자신감 있는 시선이 돋보여요. 대화할 때 부드러운 눈맞춤을 더하면 더 좋아요!");
     }
+    if (stability < 75) {
+      tips.push("촬영 전 심호흡을 3회 해보세요. 마음이 안정되면 표정도 자연스러워져요.");
+    } else {
+      tips.push("안정감 있는 표정이 좋아요. 꾸준한 명상 습관이 이 여유를 유지하는 데 도움이 돼요.");
+    }
   } else if (total >= 65) {
     if (friendliness < 70) {
       tips.push("하루에 세 번, 거울을 보며 가볍게 미소 짓는 연습을 해보세요. 2주면 자연스러워져요.");
@@ -152,10 +173,13 @@ export function generateTips(
       tips.push("매일 아침 거울 앞에서 \"오늘 하루도 괜찮을 거야\"라고 말해 보세요. 작은 습관이 큰 변화를 만들어요.");
       tips.push("고개를 살짝 들고 먼 곳을 바라보는 연습을 해보세요. 눈빛에 여유가 생겨요.");
     }
+    if (stability < 70) {
+      tips.push("촬영 전에 눈을 감고 5초간 심호흡하면 한결 편안한 표정이 나와요.");
+      tips.push("명상이나 호흡 운동을 해보세요. 내면의 안정감이 표정에 그대로 나타나요.");
+    }
     tips.push("표정 근육은 연습할수록 부드러워져요. 매일 1분씩 표정 스트레칭을 해보세요!");
     tips.push("좋은 인상은 타고나는 게 아니에요. 작은 습관이 쌓이면 누구나 빛나는 인상을 가질 수 있어요.");
     tips.push("하루 한 번 거울 앞에서 좋아하는 표정을 연습해 보세요. 자연스러움이 쌓여요.");
-    tips.push("따뜻한 차 한 잔의 여유가 오늘의 표정을 더 편안하게 만들어 줄 거예요.");
   } else {
     tips.push("오늘은 충분히 쉬는 게 가장 좋은 인상 관리예요. 피곤할 땐 무리하지 마세요.");
     tips.push("따뜻한 물 한 잔과 함께 심호흡을 해보세요. 긴장이 풀리면 표정도 자연스럽게 편안해져요.");

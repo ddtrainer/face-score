@@ -4,12 +4,11 @@ import { getRecords, saveRecord as storageSaveRecord, generateId, getLatestRecor
 
 interface AppState {
   analysisResult: AnalysisResult | null;
-  imageUrl: string | null;
   isAnalyzing: boolean;
   records: FaceRecord[];
   latestRecord: FaceRecord | null;
   averageScore: number | null;
-  setAnalysisResult: (result: AnalysisResult, imageUrl: string) => void;
+  setAnalysisResult: (result: AnalysisResult) => void;
   clearAnalysisResult: () => void;
   setIsAnalyzing: (v: boolean) => void;
   saveCurrentResult: () => boolean;
@@ -19,24 +18,24 @@ interface AppState {
 const AppStateContext = createContext<AppState | null>(null);
 
 const SESSION_RESULT_KEY = "face_score_session_result";
-const SESSION_IMAGE_KEY = "face_score_session_image";
 
 function loadSessionResult(): AnalysisResult | null {
   try {
     const data = sessionStorage.getItem(SESSION_RESULT_KEY);
-    return data ? (JSON.parse(data) as AnalysisResult) : null;
+    if (!data) return null;
+    const parsed = JSON.parse(data) as AnalysisResult;
+    if (typeof parsed.stability !== "number") {
+      parsed.stability = Math.round((parsed.friendliness + parsed.vitality + parsed.confidence) / 3);
+      parsed.totalScore = Math.round((parsed.friendliness + parsed.vitality + parsed.confidence + parsed.stability) / 4);
+    }
+    return parsed;
   } catch {
     return null;
   }
 }
 
-function loadSessionImage(): string | null {
-  return sessionStorage.getItem(SESSION_IMAGE_KEY);
-}
-
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [analysisResult, setAnalysisResultState] = useState<AnalysisResult | null>(loadSessionResult);
-  const [imageUrl, setImageUrl] = useState<string | null>(loadSessionImage);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [records, setRecords] = useState<FaceRecord[]>(getRecords);
   const [latestRecord, setLatestRecord] = useState<FaceRecord | null>(getLatestRecord);
@@ -49,26 +48,19 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setAverageScore(getAverageScore());
   }, []);
 
-  const setAnalysisResult = useCallback((result: AnalysisResult, url: string) => {
+  const setAnalysisResult = useCallback((result: AnalysisResult) => {
     setAnalysisResultState(result);
-    setImageUrl(url);
     setHasSaved(false);
     try {
       sessionStorage.setItem(SESSION_RESULT_KEY, JSON.stringify(result));
-      sessionStorage.setItem(SESSION_IMAGE_KEY, url);
     } catch { /* ignore */ }
   }, []);
 
   const clearAnalysisResult = useCallback(() => {
-    if (imageUrl && imageUrl.startsWith("blob:")) {
-      URL.revokeObjectURL(imageUrl);
-    }
     setAnalysisResultState(null);
-    setImageUrl(null);
     setHasSaved(false);
     sessionStorage.removeItem(SESSION_RESULT_KEY);
-    sessionStorage.removeItem(SESSION_IMAGE_KEY);
-  }, [imageUrl]);
+  }, []);
 
   const saveCurrentResult = useCallback((): boolean => {
     if (!analysisResult) return false;
@@ -81,6 +73,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       friendliness: analysisResult.friendliness,
       vitality: analysisResult.vitality,
       confidence: analysisResult.confidence,
+      stability: analysisResult.stability,
       summary: analysisResult.summary,
       tips: analysisResult.tips,
     });
@@ -90,19 +83,10 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     return true;
   }, [analysisResult, hasSaved, refreshRecords]);
 
-  useEffect(() => {
-    return () => {
-      if (imageUrl && imageUrl.startsWith("blob:")) {
-        URL.revokeObjectURL(imageUrl);
-      }
-    };
-  }, [imageUrl]);
-
   return (
     <AppStateContext.Provider
       value={{
         analysisResult,
-        imageUrl,
         isAnalyzing,
         records,
         latestRecord,

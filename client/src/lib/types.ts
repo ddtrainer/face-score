@@ -5,6 +5,7 @@ export interface FaceRecord {
   friendliness: number;
   vitality: number;
   confidence: number;
+  stability: number;
   summary: string;
   tips: string[];
 }
@@ -13,6 +14,7 @@ export interface AnalysisResult {
   friendliness: number;
   vitality: number;
   confidence: number;
+  stability: number;
   totalScore: number;
   summary: string;
   tips: string[];
