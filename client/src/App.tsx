@@ -15,7 +15,7 @@ function AppContent() {
   return (
     <div className="min-h-screen bg-background flex flex-col">
       <Header />
-      <main className="flex-1 pb-20 overflow-y-auto">
+      <main className="flex-1 pb-24 overflow-y-auto">
         <Switch>
           <Route path="/">
             <HomePage />

@@ -6,11 +6,11 @@ interface ScoreCircleProps {
   animated?: boolean;
 }
 
-function getScoreColor(score: number): string {
-  if (score >= 85) return "from-emerald-400 to-teal-500";
-  if (score >= 75) return "from-primary to-chart-3";
-  if (score >= 65) return "from-blue-400 to-primary";
-  return "from-amber-400 to-orange-400";
+function getScoreGradient(score: number): { from: string; to: string } {
+  if (score >= 85) return { from: "#6ee7b7", to: "#14b8a6" };
+  if (score >= 75) return { from: "#a78bfa", to: "#6366f1" };
+  if (score >= 65) return { from: "#60a5fa", to: "#8b5cf6" };
+  return { from: "#fbbf24", to: "#f59e0b" };
 }
 
 function getScoreLabel(score: number): string {
@@ -22,28 +22,25 @@ function getScoreLabel(score: number): string {
 
 export default function ScoreCircle({ score, size = "lg", animated = true }: ScoreCircleProps) {
   const isLarge = size === "lg";
-  const outerSize = isLarge ? "w-44 h-44" : "w-24 h-24";
-  const innerSize = isLarge ? "w-36 h-36" : "w-20 h-20";
-  const textSize = isLarge ? "text-5xl" : "text-2xl";
-  const labelSize = isLarge ? "text-sm" : "text-[10px]";
-  const gradient = getScoreColor(score);
-  const label = getScoreLabel(score);
-
-  const circumference = isLarge ? 2 * Math.PI * 68 : 2 * Math.PI * 38;
+  const outerSize = isLarge ? 200 : 80;
+  const radius = isLarge ? 82 : 32;
+  const strokeWidth = isLarge ? 8 : 5;
+  const center = outerSize / 2;
+  const circumference = 2 * Math.PI * radius;
   const progress = (score / 100) * circumference;
-  const svgSize = isLarge ? 176 : 96;
-  const radius = isLarge ? 68 : 38;
-  const center = svgSize / 2;
-  const strokeWidth = isLarge ? 6 : 4;
+  const gradient = getScoreGradient(score);
+  const label = getScoreLabel(score);
+  const gradId = `score-grad-${size}`;
 
   return (
-    <div className={`relative ${outerSize} flex items-center justify-center`}>
-      <svg
-        className="absolute inset-0"
-        width={svgSize}
-        height={svgSize}
-        viewBox={`0 0 ${svgSize} ${svgSize}`}
-      >
+    <div className="relative flex items-center justify-center" style={{ width: outerSize, height: outerSize }}>
+      <svg width={outerSize} height={outerSize} viewBox={`0 0 ${outerSize} ${outerSize}`} className="absolute inset-0">
+        <defs>
+          <linearGradient id={gradId} x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stopColor={gradient.from} />
+            <stop offset="100%" stopColor={gradient.to} />
+          </linearGradient>
+        </defs>
         <circle
           cx={center}
           cy={center}
@@ -51,35 +48,52 @@ export default function ScoreCircle({ score, size = "lg", animated = true }: Sco
           fill="none"
           stroke="hsl(var(--muted))"
           strokeWidth={strokeWidth}
+          opacity={0.4}
         />
         <motion.circle
           cx={center}
           cy={center}
           r={radius}
           fill="none"
-          stroke="hsl(var(--primary))"
+          stroke={`url(#${gradId})`}
           strokeWidth={strokeWidth}
           strokeLinecap="round"
           strokeDasharray={circumference}
           initial={animated ? { strokeDashoffset: circumference } : { strokeDashoffset: circumference - progress }}
           animate={{ strokeDashoffset: circumference - progress }}
-          transition={animated ? { duration: 1.2, ease: "easeOut" } : { duration: 0 }}
+          transition={animated ? { duration: 1.4, ease: "easeOut" } : { duration: 0 }}
           transform={`rotate(-90 ${center} ${center})`}
         />
       </svg>
-      <div className={`${innerSize} rounded-full bg-gradient-to-br ${gradient} flex flex-col items-center justify-center`}>
-        <motion.span
-          className={`${textSize} font-bold text-white`}
-          data-testid="text-total-score"
-          initial={animated ? { opacity: 0 } : { opacity: 1 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.5 }}
-        >
-          {score}
-        </motion.span>
-        {isLarge && (
-          <span className={`${labelSize} text-white/90 font-medium`} data-testid="text-score-label">
-            {label}
+
+      <div className="flex flex-col items-center justify-center relative z-10">
+        {isLarge ? (
+          <>
+            <motion.span
+              className="text-6xl font-extrabold tracking-tight"
+              data-testid="text-total-score"
+              initial={animated ? { opacity: 0, scale: 0.8 } : { opacity: 1, scale: 1 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.6, type: "spring", stiffness: 200 }}
+            >
+              {score}
+            </motion.span>
+            <motion.span
+              className="text-xs font-semibold text-muted-foreground mt-0.5"
+              data-testid="text-score-label"
+              initial={animated ? { opacity: 0 } : { opacity: 1 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.9 }}
+            >
+              {label}
+            </motion.span>
+          </>
+        ) : (
+          <span
+            className="text-xl font-extrabold"
+            data-testid="text-total-score"
+          >
+            {score}
           </span>
         )}
       </div>
