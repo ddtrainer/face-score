@@ -1,14 +1,21 @@
 import { createContext, useContext, useState, useCallback } from "react";
 import type { AnalysisResult, FaceRecord } from "./types";
-import { getRecords, saveRecord as storageSaveRecord, generateId, getLatestRecord, getAverageScore } from "./faceStorage";
+import {
+  getRecords,
+  saveRecord as storageSaveRecord,
+  generateId,
+  getLatestRecord,
+  getAverageScore,
+} from "./faceStorage";
 
 interface AppState {
   analysisResult: AnalysisResult | null;
+  canViewResult: boolean;
   isAnalyzing: boolean;
   records: FaceRecord[];
   latestRecord: FaceRecord | null;
   averageScore: number | null;
-  setAnalysisResult: (result: AnalysisResult) => void;
+  setAnalysisResult: (result: AnalysisResult, faceValidated?: boolean) => void;
   clearAnalysisResult: () => void;
   setIsAnalyzing: (v: boolean) => void;
   saveCurrentResult: () => boolean;
@@ -29,10 +36,10 @@ function loadSessionResult(): AnalysisResult | null {
       parsed.totalScore = Math.round((parsed.friendliness + parsed.vitality + parsed.confidence + parsed.stability) / 4);
     }
     if (typeof parsed.mission !== "string") {
-      parsed.mission = "내일도 거울 앞에서 가벼운 미소를 연습해 보세요!";
+      parsed.mission = "오늘은 거울 앞에서 가벼운 미소를 연습해 보세요.";
     }
     if (typeof parsed.encouragement !== "string") {
-      parsed.encouragement = "매일 조금씩 변화하고 있어요. 내일도 함께해요!";
+      parsed.encouragement = "매일 조금씩 변하고 있어요. 오늘도 화이팅이에요!";
     }
     if (typeof parsed.qualityMessage !== "string") {
       parsed.qualityMessage = "분석 품질이 안정적입니다.";
@@ -45,6 +52,7 @@ function loadSessionResult(): AnalysisResult | null {
 
 export function AppStateProvider({ children }: { children: React.ReactNode }) {
   const [analysisResult, setAnalysisResultState] = useState<AnalysisResult | null>(loadSessionResult);
+  const [canViewResult, setCanViewResult] = useState(false);
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [records, setRecords] = useState<FaceRecord[]>(getRecords);
   const [latestRecord, setLatestRecord] = useState<FaceRecord | null>(getLatestRecord);
@@ -57,22 +65,31 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setAverageScore(getAverageScore());
   }, []);
 
-  const setAnalysisResult = useCallback((result: AnalysisResult) => {
+  const setAnalysisResult = useCallback((result: AnalysisResult, faceValidated = false) => {
+    if (!faceValidated) {
+      return;
+    }
+
     setAnalysisResultState(result);
+    setCanViewResult(true);
     setHasSaved(false);
+
     try {
       sessionStorage.setItem(SESSION_RESULT_KEY, JSON.stringify(result));
-    } catch { /* ignore */ }
+    } catch {
+      // ignore storage errors
+    }
   }, []);
 
   const clearAnalysisResult = useCallback(() => {
     setAnalysisResultState(null);
+    setCanViewResult(false);
     setHasSaved(false);
     sessionStorage.removeItem(SESSION_RESULT_KEY);
   }, []);
 
   const saveCurrentResult = useCallback((): boolean => {
-    if (!analysisResult) return false;
+    if (!analysisResult || !canViewResult) return false;
     if (hasSaved) return false;
 
     storageSaveRecord({
@@ -93,12 +110,13 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
     setHasSaved(true);
     refreshRecords();
     return true;
-  }, [analysisResult, hasSaved, refreshRecords]);
+  }, [analysisResult, canViewResult, hasSaved, refreshRecords]);
 
   return (
     <AppStateContext.Provider
       value={{
         analysisResult,
+        canViewResult,
         isAnalyzing,
         records,
         latestRecord,
