@@ -68,7 +68,16 @@ Structured face validation with success/failure return types.
 3. Face count: 0 → NO_FACE, 2+ → MULTIPLE_FACES
 4. Face size: < 3% of image → FACE_TOO_SMALL
 5. Face centering: face center must be within guide area
-6. Heuristic fallback: skin ratio, color dominance, dark features
+6. Heuristic fallback (when FaceDetector API unavailable):
+   - Color dominance rejection (green/blue/red dominant → not a face)
+   - Skin ratio range (0.18–0.75)
+   - Skin centroid centering (distX < 0.30, distY < 0.35)
+   - Face region skin ratio ≥ 0.20, non-skin ≥ 0.04
+   - Bilateral dark feature detection (eyes) with symmetry ≥ 0.25
+   - Mouth region not all-skin (lips/teeth contrast)
+   - Forehead skin ≥ 0.08, chin skin ≥ 0.08
+   - Edge ratio ≥ 0.03 (structural detail)
+   - Final gate: ≥ 5/7 composite checks must pass
 
 ### Hard Gate Rules
 - NO analysis without validated face

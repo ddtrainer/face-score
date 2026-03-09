@@ -1,27 +1,17 @@
-// ============================================================
-// 얼굴 감지 및 입력 검증 (Hard Gate)
-// ============================================================
-// 분석 시작 전 반드시 이 검증을 통과해야 합니다.
-// 통과하지 못하면 분석 함수가 절대 호출되지 않습니다.
-// ============================================================
-
-// 실패 이유 enum
 export type FaceFailureReason =
-  | "NO_FACE"          // 얼굴이 감지되지 않음
-  | "MULTIPLE_FACES"   // 여러 얼굴이 감지됨
-  | "LOW_QUALITY"      // 촬영 품질이 너무 낮음
-  | "FACE_TOO_SMALL"   // 얼굴이 너무 작음
-  | "FACE_NOT_FRONTAL" // 얼굴이 정면이 아님
-  | "FACE_OCCLUDED";   // 눈/입이 과하게 가려짐
+  | "NO_FACE"
+  | "MULTIPLE_FACES"
+  | "LOW_QUALITY"
+  | "FACE_TOO_SMALL"
+  | "FACE_NOT_FRONTAL"
+  | "FACE_OCCLUDED";
 
-// 검증 결과 타입
 export interface FaceValidationResult {
   success: boolean;
   reason: FaceFailureReason | null;
   faceCount: number;
 }
 
-// 실패 이유별 한국어 메시지
 export function getFailureMessage(reason: FaceFailureReason): { title: string; description: string } {
   switch (reason) {
     case "NO_FACE":
@@ -57,10 +47,6 @@ export function getFailureMessage(reason: FaceFailureReason): { title: string; d
   }
 }
 
-// ============================================================
-// 내부 감지 함수들
-// ============================================================
-
 function isSkinPixel(r: number, g: number, b: number): boolean {
   if (r < 60 || g < 30 || b < 15) return false;
   if (r < g || r < b) return false;
@@ -73,7 +59,6 @@ function isSkinPixel(r: number, g: number, b: number): boolean {
   return true;
 }
 
-// FaceDetector API를 사용하여 얼굴 개수와 위치를 감지
 async function detectFacesWithAPI(source: HTMLCanvasElement | HTMLImageElement): Promise<{
   available: boolean;
   faceCount: number;
@@ -82,7 +67,6 @@ async function detectFacesWithAPI(source: HTMLCanvasElement | HTMLImageElement):
   if (typeof window === "undefined" || !("FaceDetector" in window)) {
     return { available: false, faceCount: 0, faces: [] };
   }
-
   try {
     const detector = new (window as any).FaceDetector({ fastMode: false, maxDetectedFaces: 5 });
     const detected = await detector.detect(source);
@@ -98,16 +82,13 @@ async function detectFacesWithAPI(source: HTMLCanvasElement | HTMLImageElement):
   }
 }
 
-// 휴리스틱 기반 얼굴 감지 (FaceDetector API 미지원 브라우저용)
 function detectFaceWithHeuristic(imageData: ImageData): {
   hasFace: boolean;
   reason: FaceFailureReason | null;
-  skinRatio: number;
-  centerSkinRatio: number;
-  darkFeatureRatio: number;
 } {
   const { data, width, height } = imageData;
   const totalPixels = width * height;
+
   let skinPixels = 0;
   let skinSumX = 0;
   let skinSumY = 0;
@@ -138,15 +119,18 @@ function detectFaceWithHeuristic(imageData: ImageData): {
   const blueRatio = blueDom / totalPixels;
   const redRatio = redDom / totalPixels;
 
-  if (greenRatio > 0.30 || blueRatio > 0.35 || redRatio > 0.25) {
-    return { hasFace: false, reason: "NO_FACE", skinRatio, centerSkinRatio: 0, darkFeatureRatio: 0 };
+  if (greenRatio > 0.25 || blueRatio > 0.30 || redRatio > 0.20) {
+    return { hasFace: false, reason: "NO_FACE" };
   }
 
-  if (skinRatio < 0.12) {
-    return { hasFace: false, reason: "NO_FACE", skinRatio, centerSkinRatio: 0, darkFeatureRatio: 0 };
+  if (skinRatio < 0.18) {
+    return { hasFace: false, reason: "NO_FACE" };
   }
 
-  // 피부 영역이 중심에 있는지 확인 (정면성 체크)
+  if (skinRatio > 0.75) {
+    return { hasFace: false, reason: "NO_FACE" };
+  }
+
   if (skinPixels > 0) {
     const avgX = skinSumX / skinPixels;
     const avgY = skinSumY / skinPixels;
@@ -154,60 +138,180 @@ function detectFaceWithHeuristic(imageData: ImageData): {
     const centerY = height / 2;
     const distX = Math.abs(avgX - centerX) / width;
     const distY = Math.abs(avgY - centerY) / height;
-    if (distX > 0.35 || distY > 0.40) {
-      return { hasFace: false, reason: "FACE_NOT_FRONTAL", skinRatio, centerSkinRatio: 0, darkFeatureRatio: 0 };
+    if (distX > 0.30 || distY > 0.35) {
+      return { hasFace: false, reason: "FACE_NOT_FRONTAL" };
     }
   }
 
-  // 중심 영역 피부 비율 (얼굴 크기 추정)
-  const centerTop = Math.floor(height * 0.15);
-  const centerBottom = Math.floor(height * 0.85);
-  const centerLeft = Math.floor(width * 0.15);
-  const centerRight = Math.floor(width * 0.85);
-  let centerSkin = 0;
-  let centerTotal = 0;
+  const faceTop = Math.floor(height * 0.10);
+  const faceBottom = Math.floor(height * 0.90);
+  const faceLeft = Math.floor(width * 0.15);
+  const faceRight = Math.floor(width * 0.85);
+  let faceSkin = 0;
+  let faceTotal = 0;
+  let nonSkinInFace = 0;
 
-  for (let y = centerTop; y < centerBottom; y += 4) {
-    for (let x = centerLeft; x < centerRight; x += 4) {
+  for (let y = faceTop; y < faceBottom; y += 3) {
+    for (let x = faceLeft; x < faceRight; x += 3) {
       const idx = (y * width + x) * 4;
-      centerTotal++;
+      faceTotal++;
       if (isSkinPixel(data[idx], data[idx + 1], data[idx + 2])) {
-        centerSkin++;
+        faceSkin++;
+      } else {
+        nonSkinInFace++;
       }
     }
   }
 
-  const centerSkinRatio = centerTotal > 0 ? centerSkin / centerTotal : 0;
-  if (centerSkinRatio < 0.15) {
-    return { hasFace: false, reason: "FACE_TOO_SMALL", skinRatio, centerSkinRatio, darkFeatureRatio: 0 };
+  const faceSkinRatio = faceTotal > 0 ? faceSkin / faceTotal : 0;
+  const nonSkinRatio = faceTotal > 0 ? nonSkinInFace / faceTotal : 1;
+
+  if (faceSkinRatio < 0.10) {
+    return { hasFace: false, reason: "FACE_TOO_SMALL" };
   }
 
-  // 눈 영역에 어두운 특징이 있는지 (눈/눈썹 존재 확인)
-  let darkRegions = 0;
-  const eyeTop = Math.floor(height * 0.25);
-  const eyeBottom = Math.floor(height * 0.55);
-  const eyeLeft = Math.floor(width * 0.2);
-  const eyeRight = Math.floor(width * 0.8);
+  if (nonSkinRatio < 0.02) {
+    return { hasFace: false, reason: "NO_FACE" };
+  }
 
-  for (let y = eyeTop; y < eyeBottom; y += 3) {
-    for (let x = eyeLeft; x < eyeRight; x += 3) {
+  const eyeTop = Math.floor(height * 0.25);
+  const eyeBottom = Math.floor(height * 0.50);
+  const midX = Math.floor(width / 2);
+  const eyeLeftStart = Math.floor(width * 0.15);
+  const eyeRightEnd = Math.floor(width * 0.85);
+
+  let leftDark = 0;
+  let leftTotal = 0;
+  let rightDark = 0;
+  let rightTotal = 0;
+
+  for (let y = eyeTop; y < eyeBottom; y += 2) {
+    for (let x = eyeLeftStart; x < midX; x += 2) {
       const idx = (y * width + x) * 4;
       const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
-      if (brightness < 70) darkRegions++;
+      leftTotal++;
+      if (brightness < 80) leftDark++;
+    }
+    for (let x = midX; x < eyeRightEnd; x += 2) {
+      const idx = (y * width + x) * 4;
+      const brightness = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+      rightTotal++;
+      if (brightness < 80) rightDark++;
     }
   }
 
-  const eyeArea = ((eyeBottom - eyeTop) / 3) * ((eyeRight - eyeLeft) / 3);
-  const darkFeatureRatio = eyeArea > 0 ? darkRegions / eyeArea : 0;
+  const leftDarkRatio = leftTotal > 0 ? leftDark / leftTotal : 0;
+  const rightDarkRatio = rightTotal > 0 ? rightDark / rightTotal : 0;
 
-  if (darkFeatureRatio < 0.02) {
-    return { hasFace: false, reason: "FACE_OCCLUDED", skinRatio, centerSkinRatio, darkFeatureRatio };
+  if (leftDarkRatio > 0.70 || rightDarkRatio > 0.70) {
+    return { hasFace: false, reason: "NO_FACE" };
   }
 
-  return { hasFace: true, reason: null, skinRatio, centerSkinRatio, darkFeatureRatio };
+  const darkSymmetry = (leftDarkRatio > 0 && rightDarkRatio > 0)
+    ? Math.min(leftDarkRatio, rightDarkRatio) / Math.max(leftDarkRatio, rightDarkRatio)
+    : 0;
+
+  const mouthTop = Math.floor(height * 0.55);
+  const mouthBottom = Math.floor(height * 0.75);
+  const mouthLeft = Math.floor(width * 0.25);
+  const mouthRight = Math.floor(width * 0.75);
+  let mouthDark = 0;
+  let mouthSkin = 0;
+  let mouthTotal = 0;
+
+  for (let y = mouthTop; y < mouthBottom; y += 2) {
+    for (let x = mouthLeft; x < mouthRight; x += 2) {
+      const idx = (y * width + x) * 4;
+      const r = data[idx];
+      const g = data[idx + 1];
+      const b = data[idx + 2];
+      const brightness = (r + g + b) / 3;
+      mouthTotal++;
+      if (brightness < 90) mouthDark++;
+      if (isSkinPixel(r, g, b)) mouthSkin++;
+    }
+  }
+
+  const mouthSkinRatio = mouthTotal > 0 ? mouthSkin / mouthTotal : 0;
+  const mouthDarkRatio = mouthTotal > 0 ? mouthDark / mouthTotal : 0;
+
+  if (mouthSkinRatio > 0.95 && mouthDarkRatio < 0.02) {
+    return { hasFace: false, reason: "NO_FACE" };
+  }
+
+  const foreheadTop = Math.floor(height * 0.12);
+  const foreheadBottom = Math.floor(height * 0.32);
+  const foreheadLeft = Math.floor(width * 0.25);
+  const foreheadRight = Math.floor(width * 0.75);
+  let foreheadSkin = 0;
+  let foreheadTotal = 0;
+
+  for (let y = foreheadTop; y < foreheadBottom; y += 3) {
+    for (let x = foreheadLeft; x < foreheadRight; x += 3) {
+      const idx = (y * width + x) * 4;
+      foreheadTotal++;
+      if (isSkinPixel(data[idx], data[idx + 1], data[idx + 2])) {
+        foreheadSkin++;
+      }
+    }
+  }
+
+  const foreheadSkinRatio = foreheadTotal > 0 ? foreheadSkin / foreheadTotal : 0;
+
+  const chinTop = Math.floor(height * 0.70);
+  const chinBottom = Math.floor(height * 0.90);
+  const chinLeft = Math.floor(width * 0.30);
+  const chinRight = Math.floor(width * 0.70);
+  let chinSkin = 0;
+  let chinTotal = 0;
+
+  for (let y = chinTop; y < chinBottom; y += 3) {
+    for (let x = chinLeft; x < chinRight; x += 3) {
+      const idx = (y * width + x) * 4;
+      chinTotal++;
+      if (isSkinPixel(data[idx], data[idx + 1], data[idx + 2])) {
+        chinSkin++;
+      }
+    }
+  }
+
+  const chinSkinRatio = chinTotal > 0 ? chinSkin / chinTotal : 0;
+
+  let edgeCount = 0;
+  let edgeSamples = 0;
+  for (let y = eyeTop; y < eyeBottom; y += 3) {
+    for (let x = eyeLeftStart + 1; x < eyeRightEnd - 1; x += 3) {
+      const idx = (y * width + x) * 4;
+      const idxR = idx + 4;
+      const idxD = idx + width * 4;
+      if (idxR + 2 < data.length && idxD + 2 < data.length) {
+        const curr = (data[idx] + data[idx + 1] + data[idx + 2]) / 3;
+        const right = (data[idxR] + data[idxR + 1] + data[idxR + 2]) / 3;
+        const down = (data[idxD] + data[idxD + 1] + data[idxD + 2]) / 3;
+        edgeSamples++;
+        if (Math.abs(curr - right) > 25 || Math.abs(curr - down) > 25) edgeCount++;
+      }
+    }
+  }
+
+  const edgeRatio = edgeSamples > 0 ? edgeCount / edgeSamples : 0;
+
+  let passedChecks = 0;
+  if (faceSkinRatio >= 0.20) passedChecks++;
+  if (leftDarkRatio >= 0.04 && rightDarkRatio >= 0.04) passedChecks++;
+  if (darkSymmetry >= 0.25) passedChecks++;
+  if (foreheadSkinRatio >= 0.08) passedChecks++;
+  if (chinSkinRatio >= 0.08) passedChecks++;
+  if (edgeRatio >= 0.03) passedChecks++;
+  if (nonSkinRatio >= 0.04) passedChecks++;
+
+  if (passedChecks < 5) {
+    return { hasFace: false, reason: "NO_FACE" };
+  }
+
+  return { hasFace: true, reason: null };
 }
 
-// 촬영 품질 점검
 function checkImageQuality(imageData: ImageData): { passes: boolean; reason: FaceFailureReason | null } {
   const { data, width, height } = imageData;
 
@@ -216,7 +320,6 @@ function checkImageQuality(imageData: ImageData): { passes: boolean; reason: Fac
   }
 
   let lumSum = 0;
-  let lumSqSum = 0;
   let sampleCount = 0;
 
   for (let i = 0; i < data.length; i += 16) {
@@ -238,20 +341,12 @@ function checkImageQuality(imageData: ImageData): { passes: boolean; reason: Fac
   return { passes: true, reason: null };
 }
 
-
-// ============================================================
-// 공개 검증 함수들
-// ============================================================
-
-// ImageData 프레임에서 얼굴 검증 (카메라 스캔용)
 export async function validateFaceInImageData(imageData: ImageData): Promise<FaceValidationResult> {
-  // 1. 품질 점검
   const quality = checkImageQuality(imageData);
   if (!quality.passes) {
     return { success: false, reason: quality.reason!, faceCount: 0 };
   }
 
-  // 2. 캔버스로 변환하여 API 감지 시도
   const canvas = document.createElement("canvas");
   canvas.width = imageData.width;
   canvas.height = imageData.height;
@@ -262,7 +357,6 @@ export async function validateFaceInImageData(imageData: ImageData): Promise<Fac
   const apiResult = await detectFacesWithAPI(canvas);
 
   if (apiResult.available) {
-    // API를 사용할 수 있을 때
     if (apiResult.faceCount === 0) {
       return { success: false, reason: "NO_FACE", faceCount: 0 };
     }
@@ -270,7 +364,6 @@ export async function validateFaceInImageData(imageData: ImageData): Promise<Fac
       return { success: false, reason: "MULTIPLE_FACES", faceCount: apiResult.faceCount };
     }
 
-    // 얼굴 1개 — 크기 검증
     const face = apiResult.faces[0];
     const faceArea = face.width * face.height;
     const imageArea = canvas.width * canvas.height;
@@ -278,7 +371,6 @@ export async function validateFaceInImageData(imageData: ImageData): Promise<Fac
       return { success: false, reason: "FACE_TOO_SMALL", faceCount: 1 };
     }
 
-    // 얼굴 중심이 가이드 영역 안에 있는지 확인
     const faceCenterX = (face.x + face.width / 2) / canvas.width;
     const faceCenterY = (face.y + face.height / 2) / canvas.height;
     if (faceCenterX < 0.15 || faceCenterX > 0.85 || faceCenterY < 0.1 || faceCenterY > 0.9) {
@@ -288,7 +380,6 @@ export async function validateFaceInImageData(imageData: ImageData): Promise<Fac
     return { success: true, reason: null, faceCount: 1 };
   }
 
-  // 3. API 미지원 → 휴리스틱 사용
   const heuristic = detectFaceWithHeuristic(imageData);
   if (!heuristic.hasFace) {
     return { success: false, reason: heuristic.reason ?? "NO_FACE", faceCount: 0 };
@@ -297,7 +388,6 @@ export async function validateFaceInImageData(imageData: ImageData): Promise<Fac
   return { success: true, reason: null, faceCount: 1 };
 }
 
-// 파일에서 얼굴 검증 (업로드용)
 export async function validateFaceInFile(file: File): Promise<FaceValidationResult> {
   return new Promise((resolve) => {
     const img = new Image();
@@ -316,7 +406,6 @@ export async function validateFaceInFile(file: File): Promise<FaceValidationResu
       ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
       URL.revokeObjectURL(url);
 
-      // 1. 품질 점검
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
       const quality = checkImageQuality(imageData);
       if (!quality.passes) {
@@ -324,7 +413,6 @@ export async function validateFaceInFile(file: File): Promise<FaceValidationResu
         return;
       }
 
-      // 2. API 감지 시도
       const apiResult = await detectFacesWithAPI(canvas);
 
       if (apiResult.available) {
@@ -356,7 +444,6 @@ export async function validateFaceInFile(file: File): Promise<FaceValidationResu
         return;
       }
 
-      // 3. 휴리스틱 사용
       const heuristic = detectFaceWithHeuristic(imageData);
       if (!heuristic.hasFace) {
         resolve({ success: false, reason: heuristic.reason ?? "NO_FACE", faceCount: 0 });
@@ -375,7 +462,6 @@ export async function validateFaceInFile(file: File): Promise<FaceValidationResu
   });
 }
 
-// 파일에서 ImageData 추출 (분석용)
 export function extractImageDataFromFile(file: File): Promise<ImageData | null> {
   return new Promise((resolve) => {
     const img = new Image();
