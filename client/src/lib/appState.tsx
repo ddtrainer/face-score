@@ -31,6 +31,12 @@ function loadSessionResult(): AnalysisResult | null {
     if (typeof parsed.mission !== "string") {
       parsed.mission = "내일도 거울 앞에서 가벼운 미소를 연습해 보세요!";
     }
+    if (typeof parsed.encouragement !== "string") {
+      parsed.encouragement = "매일 조금씩 변화하고 있어요. 내일도 함께해요!";
+    }
+    if (typeof parsed.qualityMessage !== "string") {
+      parsed.qualityMessage = "분석 품질이 안정적입니다.";
+    }
     return parsed;
   } catch {
     return null;
@@ -80,6 +86,8 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       summary: analysisResult.summary,
       tips: analysisResult.tips,
       mission: analysisResult.mission,
+      encouragement: analysisResult.encouragement,
+      qualityMessage: analysisResult.qualityMessage,
     });
 
     setHasSaved(true);

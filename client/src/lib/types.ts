@@ -9,6 +9,8 @@ export interface FaceRecord {
   summary: string;
   tips: string[];
   mission: string;
+  encouragement: string;
+  qualityMessage: string;
 }
 
 export interface AnalysisResult {
@@ -20,4 +22,6 @@ export interface AnalysisResult {
   summary: string;
   tips: string[];
   mission: string;
+  encouragement: string;
+  qualityMessage: string;
 }

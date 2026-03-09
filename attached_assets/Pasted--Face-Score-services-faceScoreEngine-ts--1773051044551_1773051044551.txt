@@ -1,0 +1,311 @@
+지금 만든 Face Score 앱에
+핵심 인상 분석 엔진 파일 `services/faceScoreEngine.ts` 를 새로 만들고,
+기존 분석 흐름과 연결해줘.
+
+이 엔진은
+"3초 셀피 스캔 기반 인상 분석 + 점수 계산 + 코칭 생성"
+을 담당해야 한다.
+
+중요:
+나는 코딩 초보다.
+그러니 구조를 단순하고 읽기 쉽게 만들어줘.
+주석을 자세히 달아줘.
+실제 AI 모델 없이도 지금 바로 실행 가능해야 한다.
+하지만 나중에 MediaPipe 같은 실제 얼굴 분석 모델을 붙이기 쉽게 구조를 분리해줘.
+
+-----------------------------------
+[핵심 목적]
+Face Score는 외모 평가 앱이 아니라
+매일 얼굴 표정(인상)의 변화를 분석해
+더 좋은 인상을 만들도록 돕는 AI 코칭 앱이다.
+
+따라서 점수 산식과 코칭 문구는
+비하/비판/진단이 아니라
+부드럽고 긍정적인 자기관리형 피드백이 되도록 설계해줘.
+
+-----------------------------------
+[전문가 가중치]
+분석 알고리즘은 아래 전문가 비중을 반영해야 한다.
+
+1. 인상 및 표정 전문가 60%
+2. 비언어 커뮤니케이션 심리학자 30%
+3. 뇌과학 및 신경생리학 기반 코칭 10%
+
+이 비중은 최종 Face Score 계산과 코칭 메시지 생성 로직에 반영해줘.
+
+-----------------------------------
+[파일 생성]
+새 파일:
+services/faceScoreEngine.ts
+
+필요하면 아래 파일도 함께 만들 수 있다.
+- services/types.ts
+- services/mockFaceSignals.ts
+
+-----------------------------------
+[타입 정의]
+아래 타입들을 명확하게 정의해줘.
+
+1. FaceFrameSignal
+3초 스캔 중 한 프레임에서 얻은 신호값
+
+필드 예시:
+- mouthSoftness: number
+- eyeTension: number
+- browTension: number
+- gazeStability: number
+- headStability: number
+- expressionConsistency: number
+- naturalSmileIndex: number
+- captureQuality: number
+
+각 값 범위:
+0 ~ 1
+
+2. AggregatedFaceSignals
+여러 프레임을 합산한 평균 신호
+
+3. ImpressionScores
+사용자에게 보여줄 점수
+
+필드:
+- friendliness: number
+- vitality: number
+- confidence: number
+- stability: number
+- totalScore: number
+
+범위:
+0 ~ 100
+
+4. CoachingResult
+필드:
+- summary: string
+- tips: string[]
+- mission: string
+- encouragement: string
+
+5. FaceScoreAnalysisResult
+최종 결과
+
+필드:
+- signals: AggregatedFaceSignals
+- scores: ImpressionScores
+- coaching: CoachingResult
+- qualityMessage: string
+
+-----------------------------------
+[함수 구조]
+아래 함수들을 구현해줘.
+
+1. aggregateFrameSignals(frames: FaceFrameSignal[]): AggregatedFaceSignals
+역할:
+- 여러 프레임 신호 평균 계산
+- extreme value 제거 가능하면 반영
+- frames가 비어 있으면 안전한 기본값 반환
+
+2. calculateExpressionExpertScore(signals: AggregatedFaceSignals)
+역할:
+- 인상 및 표정 전문가 60% 영역 점수 계산
+- 입 주변 부드러움, 눈가 긴장 완화, 자연 미소, 표정 일관성 중심
+
+3. calculateNonverbalPsychologyScore(signals: AggregatedFaceSignals)
+역할:
+- 비언어 커뮤니케이션 심리학자 30% 영역 점수 계산
+- 친근함, 거리감 감소, 안정된 시선, 정면 응시 인상 중심
+
+4. calculateNeuroCoachingScore(signals: AggregatedFaceSignals)
+역할:
+- 뇌과학/신경생리 코칭 10% 영역 점수 계산
+- 긴장 완화, 안정감, 반복 가능한 표정 습관 형성 가능성 중심
+
+5. calculateImpressionScores(signals: AggregatedFaceSignals): ImpressionScores
+역할:
+- friendliness
+- vitality
+- confidence
+- stability
+- totalScore
+계산
+
+중요:
+총점은 단순 랜덤이 아니라
+위 3개 전문가 점수를 종합해 계산해줘.
+
+6. generateSummary(scores: ImpressionScores, signals: AggregatedFaceSignals): string
+역할:
+- 오늘의 인상 총평 1문장 생성
+- 부드럽고 따뜻한 톤
+- 외모 평가 금지
+- 코칭형 표현 사용
+
+7. generateTips(scores: ImpressionScores, signals: AggregatedFaceSignals): string[]
+역할:
+- 더 좋은 인상을 위한 팁 3개 생성
+- 행동 단위 팁
+- 예:
+  입 주변 힘 풀기
+  눈가 긴장 줄이기
+  정면 시선 유지
+  촬영 전 호흡 정리
+
+8. generateMission(scores: ImpressionScores): string
+역할:
+- 내일의 1일 미션 1개 생성
+
+9. generateEncouragement(scores: ImpressionScores): string
+역할:
+- 동기부여 문구 1개 생성
+
+10. analyzeFaceFrames(frames: FaceFrameSignal[]): FaceScoreAnalysisResult
+역할:
+- 전체 흐름을 한 번에 실행하는 메인 함수
+
+-----------------------------------
+[내부 신호 해석 기준]
+내부 신호는 아래 의미를 가진다.
+
+- mouthSoftness: 입 주변이 얼마나 부드러운가
+- eyeTension: 눈가 긴장 정도
+- browTension: 미간/눈썹 긴장 정도
+- gazeStability: 시선이 얼마나 안정적인가
+- headStability: 고개 흔들림 없이 안정적인가
+- expressionConsistency: 표정이 과하게 흔들리지 않는가
+- naturalSmileIndex: 억지 웃음이 아니라 자연스럽고 편안한 미소인가
+- captureQuality: 조명/정면/선명도 포함 전반적 품질
+
+주의:
+eyeTension, browTension은 값이 높을수록 긴장도가 높은 것이므로
+점수 계산 시 반대로 반영해야 한다.
+
+-----------------------------------
+[점수 산식 가이드]
+아래는 예시 구조다.
+합리적으로 구현하되 읽기 쉽게 만들어줘.
+
+1. friendliness
+- mouthSoftness 비중 높음
+- naturalSmileIndex 비중 높음
+- eyeTension 낮을수록 가점
+- gazeStability 일부 반영
+
+2. vitality
+- eyeTension 너무 높으면 감점
+- browTension 너무 높으면 감점
+- naturalSmileIndex 가점
+- captureQuality 약간 반영
+
+3. confidence
+- gazeStability 비중 높음
+- headStability 비중 높음
+- expressionConsistency 반영
+
+4. stability
+- gazeStability
+- headStability
+- expressionConsistency
+- browTension 낮을수록 가점
+
+5. totalScore
+총점은 아래 구조를 반영해 계산
+- 인상 및 표정 전문가 60%
+- 비언어 커뮤니케이션 심리학자 30%
+- 뇌과학/신경생리 코칭 10%
+
+-----------------------------------
+[품질 메시지]
+qualityMessage도 함께 생성해줘.
+
+예시:
+- "분석 품질이 안정적입니다."
+- "조명을 조금 더 밝게 하면 더 정확한 분석이 가능해요."
+- "정면을 바라보고 다시 스캔하면 더 정확한 결과를 얻을 수 있어요."
+
+captureQuality 값에 따라 다르게 출력해줘.
+
+-----------------------------------
+[코칭 문구 원칙]
+매우 중요:
+아래 원칙을 반드시 지켜라.
+
+1. 외모 평가 금지
+2. 차갑다, 못생겼다, 별로다 같은 표현 금지
+3. 진단처럼 말하지 말 것
+4. "더 좋아질 수 있다"는 방향으로 쓸 것
+5. 짧고 실천 가능한 행동 팁 중심
+6. 사용자가 매일 다시 스캔하고 싶게 만드는 말투 사용
+
+예시 톤:
+- "오늘은 전체적으로 차분하고 안정적인 인상이 돋보여요."
+- "입 주변 힘을 살짝 풀면 더 부드러운 인상을 줄 수 있어요."
+- "정면 시선을 조금 더 유지하면 자신감 있는 인상이 살아날 수 있어요."
+
+-----------------------------------
+[안전 처리]
+다음도 반영해줘.
+
+- frames가 비어 있을 때도 에러 없이 동작
+- NaN 방지
+- 숫자 범위 clamp 처리
+- tips는 항상 3개 반환
+- mission은 항상 1개 반환
+- encouragement는 항상 1개 반환
+
+-----------------------------------
+[헬퍼 함수]
+아래 헬퍼를 만들어도 좋다.
+
+- clamp(value, min, max)
+- average(values)
+- invertSignal(value) // 긴장도처럼 낮을수록 좋은 신호 반전
+- toScore(value) // 0~1 → 0~100 변환
+
+-----------------------------------
+[Mock 데이터]
+실제 얼굴 분석 모델이 아직 없으므로
+테스트 가능한 Mock 프레임 생성 함수도 추가해줘.
+
+예:
+createMockFrames(mode?: "good" | "neutral" | "tense"): FaceFrameSignal[]
+
+설명:
+- good: 부드럽고 안정적인 표정
+- neutral: 보통
+- tense: 긴장도가 높은 표정
+
+이 함수는 테스트용이다.
+
+-----------------------------------
+[테스트 예시]
+파일 하단 또는 별도 예시로
+아래처럼 사용할 수 있게 해줘.
+
+const frames = createMockFrames("neutral");
+const result = analyzeFaceFrames(frames);
+
+결과로
+- scores
+- coaching
+- qualityMessage
+를 확인할 수 있어야 한다.
+
+-----------------------------------
+[향후 확장 포인트]
+주석으로 아래 확장 포인트를 꼭 적어줘.
+
+1. 여기에 MediaPipe 얼굴 랜드마크 결과를 연결 가능
+2. 여기에 실제 3초 비디오 프레임 분석 결과를 연결 가능
+3. 여기에 LLM 기반 고급 코칭 생성 추가 가능
+
+-----------------------------------
+[최종 요청]
+다음을 한 번에 제공해줘.
+
+1. services/faceScoreEngine.ts 전체 코드
+2. 필요한 타입 코드
+3. mock 데이터 코드
+4. 기존 페이지에서 analyzeFaceFrames를 연결하는 예시
+5. 초보자가 이해할 수 있는 설명
+
+코드는 TypeScript로 작성하고
+가독성 좋게 정리해줘.

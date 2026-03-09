@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { RotateCcw, Save, Home, Lightbulb, Info, Check, Target } from "lucide-react";
+import { RotateCcw, Save, Home, Lightbulb, Info, Check, Target, Sparkles, Camera } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import ScoreCircle from "@/components/ScoreCircle";
@@ -132,14 +132,36 @@ export default function ResultPage() {
       </motion.div>
 
       <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.75 }}
+      >
+        <Card className="p-5 rounded-2xl border-0 bg-gradient-to-br from-rose-50 to-pink-50/50 dark:from-rose-500/5 dark:to-pink-500/5">
+          <div className="flex gap-3 items-center">
+            <div className="w-8 h-8 rounded-full bg-rose-100 dark:bg-rose-500/15 flex items-center justify-center shrink-0">
+              <Sparkles className="w-4 h-4 text-rose-500 dark:text-rose-400" />
+            </div>
+            <p className="text-[14px] font-medium leading-relaxed text-rose-700 dark:text-rose-300" data-testid="text-encouragement">
+              {analysisResult.encouragement}
+            </p>
+          </div>
+        </Card>
+      </motion.div>
+
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         transition={{ delay: 0.8 }}
-        className="flex items-center justify-center gap-2 text-xs text-muted-foreground/60"
-        data-testid="text-disclaimer"
+        className="flex flex-col items-center gap-1.5"
       >
-        <Info className="w-3.5 h-3.5 shrink-0" />
-        <span>이 결과는 재미와 자기관리를 위한 참고용이에요</span>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground/60" data-testid="text-quality-message">
+          <Camera className="w-3.5 h-3.5 shrink-0" />
+          <span>{analysisResult.qualityMessage}</span>
+        </div>
+        <div className="flex items-center gap-2 text-xs text-muted-foreground/60" data-testid="text-disclaimer">
+          <Info className="w-3.5 h-3.5 shrink-0" />
+          <span>이 결과는 재미와 자기관리를 위한 참고용이에요</span>
+        </div>
       </motion.div>
 
       <motion.div
