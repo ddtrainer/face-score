@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { Upload, AlertCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { analyzeFaceFrames } from "@/lib/analysis";
+import { detectFaceInImageData, detectFaceInFile } from "@/lib/faceDetection";
 import { useAppState } from "@/lib/appState";
 import { useToast } from "@/hooks/use-toast";
 
@@ -75,6 +76,14 @@ export default function ScanPage() {
     return ctx.getImageData(0, 0, canvas.width, canvas.height);
   }, []);
 
+  const showNoFaceError = useCallback(() => {
+    toast({
+      title: "얼굴이 감지되지 않았어요",
+      description: "얼굴이 잘 보이도록 카메라를 바라보고 다시 시도해 주세요.",
+      variant: "destructive",
+    });
+  }, [toast]);
+
   const startScan = useCallback(async () => {
     const ok = await startCamera();
     if (!ok) return;
@@ -100,18 +109,36 @@ export default function ScanPage() {
             stopCamera();
             setPhase("analyzing");
 
-            analyzeFaceFrames(frames).then((result) => {
-              pendingNavRef.current = true;
-              setAnalysisResult(result);
-              setPhase("done");
-            }).catch(() => {
-              setPhase("init");
-              toast({
-                title: "분석 중 문제가 생겼어요",
-                description: "다시 한번 시도해 주세요.",
-                variant: "destructive",
-              });
-            });
+            (async () => {
+              try {
+                let faceFound = false;
+                for (const frame of frames) {
+                  const result = await detectFaceInImageData(frame);
+                  if (result.hasFace) {
+                    faceFound = true;
+                    break;
+                  }
+                }
+
+                if (!faceFound) {
+                  setPhase("init");
+                  showNoFaceError();
+                  return;
+                }
+
+                const result = await analyzeFaceFrames(frames);
+                pendingNavRef.current = true;
+                setAnalysisResult(result);
+                setPhase("done");
+              } catch {
+                setPhase("init");
+                toast({
+                  title: "분석 중 문제가 생겼어요",
+                  description: "다시 한번 시도해 주세요.",
+                  variant: "destructive",
+                });
+              }
+            })();
           }
         }, 500);
       } else {
@@ -119,7 +146,7 @@ export default function ScanPage() {
       }
     }, 1000);
     intervalsRef.current.push(countdownInterval);
-  }, [startCamera, captureFrame, stopCamera, setAnalysisResult, toast]);
+  }, [startCamera, captureFrame, stopCamera, setAnalysisResult, toast, showNoFaceError]);
 
   const handleFileUpload = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -130,14 +157,20 @@ export default function ScanPage() {
       setPhase("analyzing");
 
       try {
-        await new Promise((r) => setTimeout(r, 1500 + Math.random() * 1000));
+        const faceResult = await detectFaceInFile(file);
+        if (!faceResult.hasFace) {
+          setPhase("init");
+          showNoFaceError();
+          return;
+        }
+
+        await new Promise((r) => setTimeout(r, 1000 + Math.random() * 500));
         const result = await analyzeFaceFrames();
         pendingNavRef.current = true;
         setAnalysisResult(result);
         setPhase("done");
       } catch {
         setPhase("init");
-        setCameraError(true);
         toast({
           title: "분석 중 문제가 생겼어요",
           description: "다시 한번 시도해 주세요.",
@@ -145,7 +178,7 @@ export default function ScanPage() {
         });
       }
     },
-    [setAnalysisResult, toast]
+    [setAnalysisResult, toast, showNoFaceError]
   );
 
   return (

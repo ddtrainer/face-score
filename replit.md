@@ -20,14 +20,22 @@
 - `client/src/pages/SettingsPage.tsx` - App info + privacy + premium placeholder
 - `client/src/components/` - Reusable UI (Header, BottomNavigation, ScoreCircle, TraitBar, LoadingOverlay)
 
+## Face Detection
+- `client/src/lib/faceDetection.ts` - Validates that images/frames contain a human face before analysis
+- Primary: Browser `FaceDetector` API (Chromium browsers — Chrome, Edge, Opera)
+- Fallback: Multi-layer heuristic — skin pixel ratio (≥12%), color dominance rejection (green >30%, blue >35%, red >25%), centered skin cluster check, center region skin ratio (≥15%), dark feature detection (eye-like regions)
+- Both camera scan frames AND file uploads are validated
+- Non-face images (flowers, landscapes, objects, noise) are rejected with Korean toast message
+
 ## Scan Flow
 1. HomePage → tap "3초 셀피 스캔 시작" → navigate to /scan
 2. ScanPage opens camera, shows face guide frame
 3. User taps "3초 셀피 스캔 시작" → 3-2-1 countdown
 4. 3 seconds of frame capture (6 frames at 500ms intervals)
-5. Frames passed to `analyzeFaceFrames()` → mock result
-6. Navigation to /result via `useEffect` watching `analysisResult`
-7. Fallback: file upload button available if camera permission denied
+5. Face detection runs on captured frames — at least 1 frame must contain a face
+6. If face found → `analyzeFaceFrames()` → mock result → navigate to /result
+7. If no face → toast error, stays on /scan
+8. Fallback: file upload button available if camera permission denied (also validates face)
 
 ## AI API Integration Point
 To connect a real AI API, edit `client/src/lib/analysis.ts`:
