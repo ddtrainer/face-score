@@ -8,6 +8,7 @@ export interface FaceRecord {
   stability: number;
   summary: string;
   tips: string[];
+  mission: string;
 }
 
 export interface AnalysisResult {
@@ -18,4 +19,5 @@ export interface AnalysisResult {
   totalScore: number;
   summary: string;
   tips: string[];
+  mission: string;
 }

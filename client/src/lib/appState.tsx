@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useCallback, useEffect } from "react";
+import { createContext, useContext, useState, useCallback } from "react";
 import type { AnalysisResult, FaceRecord } from "./types";
 import { getRecords, saveRecord as storageSaveRecord, generateId, getLatestRecord, getAverageScore } from "./faceStorage";
 
@@ -27,6 +27,9 @@ function loadSessionResult(): AnalysisResult | null {
     if (typeof parsed.stability !== "number") {
       parsed.stability = Math.round((parsed.friendliness + parsed.vitality + parsed.confidence) / 3);
       parsed.totalScore = Math.round((parsed.friendliness + parsed.vitality + parsed.confidence + parsed.stability) / 4);
+    }
+    if (typeof parsed.mission !== "string") {
+      parsed.mission = "내일도 거울 앞에서 가벼운 미소를 연습해 보세요!";
     }
     return parsed;
   } catch {
@@ -76,6 +79,7 @@ export function AppStateProvider({ children }: { children: React.ReactNode }) {
       stability: analysisResult.stability,
       summary: analysisResult.summary,
       tips: analysisResult.tips,
+      mission: analysisResult.mission,
     });
 
     setHasSaved(true);

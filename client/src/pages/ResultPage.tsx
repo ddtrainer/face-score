@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
-import { RotateCcw, Save, Home, Lightbulb, Info, Check } from "lucide-react";
+import { RotateCcw, Save, Home, Lightbulb, Info, Check, Target } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import ScoreCircle from "@/components/ScoreCircle";
@@ -112,9 +112,29 @@ export default function ResultPage() {
       </motion.div>
 
       <motion.div
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.7 }}
+      >
+        <Card className="p-6 rounded-2xl border-0 bg-gradient-to-br from-emerald-50 to-teal-50/50 dark:from-emerald-500/5 dark:to-teal-500/5">
+          <div className="flex gap-3">
+            <div className="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center shrink-0 mt-0.5">
+              <Target className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            </div>
+            <div>
+              <p className="text-xs font-semibold text-emerald-600 dark:text-emerald-400 mb-1">내일의 미션</p>
+              <p className="text-[15px] font-medium leading-relaxed" data-testid="text-mission">
+                {analysisResult.mission}
+              </p>
+            </div>
+          </div>
+        </Card>
+      </motion.div>
+
+      <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.75 }}
+        transition={{ delay: 0.8 }}
         className="flex items-center justify-center gap-2 text-xs text-muted-foreground/60"
         data-testid="text-disclaimer"
       >
@@ -125,7 +145,7 @@ export default function ResultPage() {
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.8 }}
+        transition={{ delay: 0.85 }}
         className="space-y-3 pb-6"
       >
         <div className="flex gap-3">
