@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import ScoreCircle from "@/components/ScoreCircle";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { analyzeFaceMock } from "@/lib/analysis";
+import { detectFace } from "@/lib/faceDetection";
 import { useAppState } from "@/lib/appState";
 import { useToast } from "@/hooks/use-toast";
 
@@ -27,6 +28,18 @@ export default function HomePage() {
       setIsAnalyzing(true);
 
       try {
+        const { hasFace } = await detectFace(imageUrl);
+
+        if (!hasFace) {
+          URL.revokeObjectURL(imageUrl);
+          toast({
+            title: "얼굴을 찾을 수 없어요",
+            description: "사람의 얼굴이 잘 보이는 사진을 올려주세요. 셀카나 정면 사진이 좋아요!",
+            variant: "destructive",
+          });
+          return;
+        }
+
         await new Promise((resolve) => setTimeout(resolve, 1500 + Math.random() * 1000));
         const result = await analyzeFaceMock();
         setAnalysisResult(result, imageUrl);
