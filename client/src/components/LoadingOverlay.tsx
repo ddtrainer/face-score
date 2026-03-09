@@ -31,8 +31,8 @@ export default function LoadingOverlay() {
         </div>
 
         <div className="text-center space-y-2">
-          <p className="text-xl font-bold" data-testid="text-analyzing">인상을 분석하고 있어요</p>
-          <p className="text-sm text-muted-foreground">AI가 분석 중이에요. 잠시만 기다려 주세요.</p>
+          <p className="text-xl font-bold" data-testid="text-analyzing">표정을 읽고 있어요</p>
+          <p className="text-sm text-muted-foreground">맞춤 코칭을 준비하고 있어요. 잠시만요!</p>
         </div>
 
         <div className="flex gap-2">

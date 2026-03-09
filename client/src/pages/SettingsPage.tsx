@@ -12,7 +12,7 @@ export default function SettingsPage() {
     <div className="max-w-lg mx-auto px-5 py-6 space-y-5">
       <div>
         <h2 className="text-2xl font-extrabold" data-testid="text-settings-title">설정</h2>
-        <p className="text-sm text-muted-foreground mt-1">앱 정보 및 개인정보 설정</p>
+        <p className="text-sm text-muted-foreground mt-1">앱 정보와 개인정보를 확인하세요</p>
       </div>
 
       <motion.div
@@ -26,11 +26,11 @@ export default function SettingsPage() {
             </div>
             <div>
               <h3 className="text-base font-bold">Face Score</h3>
-              <p className="text-xs text-muted-foreground">인상 분석 & 코칭 앱</p>
+              <p className="text-xs text-muted-foreground">나만의 인상 코칭 파트너</p>
             </div>
           </div>
           <p className="text-sm text-muted-foreground leading-relaxed" data-testid="text-app-intro">
-            AI가 당신의 표정을 분석해 점수와 맞춤 코칭을 제공하는 앱이에요. 매일 사진을 찍고 기록을 쌓아 더 나은 인상을 만들어 보세요.
+            매일 한 장의 사진으로 나만의 인상을 체크하고, 맞춤 코칭을 받아보세요. 꾸준히 기록하면 작은 변화가 눈에 보일 거예요.
           </p>
         </Card>
       </motion.div>
@@ -49,10 +49,10 @@ export default function SettingsPage() {
           </div>
           <ul className="space-y-3" data-testid="text-privacy-policy">
             {[
-              "사진은 분석 후 즉시 삭제되며, 서버에 저장되지 않아요.",
-              "점수 기록만 기기의 로컬 저장소에 저장돼요.",
-              "저장 버튼을 누를 때만 점수가 기록으로 남아요.",
-              "이 앱의 결과는 참고용이며, 의학적 진단이 아니에요.",
+              "사진은 분석 후 바로 삭제돼요. 서버에 저장되지 않으니 안심하세요.",
+              "점수 기록만 기기에 안전하게 보관돼요.",
+              "저장 버튼을 누를 때만 기록이 남아요.",
+              "이 결과는 재미와 자기관리를 위한 참고용이에요.",
             ].map((text, i) => (
               <li key={i} className="flex gap-3 items-start">
                 <div className="w-5 h-5 rounded-full bg-emerald-100 dark:bg-emerald-500/15 flex items-center justify-center shrink-0 mt-0.5">
@@ -77,8 +77,8 @@ export default function SettingsPage() {
                 <Bell className="w-5 h-5 text-blue-600 dark:text-blue-400" />
               </div>
               <div>
-                <p className="text-sm font-bold">일일 리마인더</p>
-                <p className="text-xs text-muted-foreground">매일 분석 알림 받기</p>
+                <p className="text-sm font-bold">매일 코칭 알림</p>
+                <p className="text-xs text-muted-foreground">오늘의 인상 체크를 잊지 않도록 알려드려요</p>
               </div>
             </div>
             <Switch
@@ -109,9 +109,9 @@ export default function SettingsPage() {
           </div>
           <div className="space-y-2.5">
             {[
-              "더 정밀한 AI 분석",
-              "맞춤형 인상 개선 코칭",
-              "장기 기록 저장 및 트렌드 분석",
+              "더 세밀한 표정 분석과 맞춤 코칭",
+              "나만의 인상 개선 플랜 제공",
+              "장기 기록 보관 및 변화 트렌드 분석",
             ].map((text, i) => (
               <div key={i} className="flex items-center justify-between py-2 border-b border-border/50 last:border-0">
                 <span className="text-sm text-muted-foreground">{text}</span>

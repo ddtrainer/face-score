@@ -27,10 +27,10 @@ export default function HistoryPage() {
     return (
       <div className="max-w-lg mx-auto px-5 py-6">
         <h2 className="text-2xl font-extrabold mb-2" data-testid="text-history-title">나의 기록</h2>
-        <p className="text-sm text-muted-foreground mb-4">매일 기록을 쌓아 변화를 확인해 보세요</p>
+        <p className="text-sm text-muted-foreground mb-4">꾸준히 기록하면 나의 변화가 보여요</p>
         <EmptyState
           title="아직 기록이 없어요"
-          description="홈에서 사진을 분석하고 저장하면 여기에 기록이 쌓여요."
+          description="첫 번째 인상 코칭을 받고 저장하면 여기서 나의 변화를 확인할 수 있어요."
         />
         <div className="flex justify-center mt-6">
           <Button
@@ -39,7 +39,7 @@ export default function HistoryPage() {
             data-testid="button-start-analysis"
           >
             <ArrowUpRight className="w-4 h-4" />
-            첫 분석 시작하기
+            첫 코칭 시작하기
           </Button>
         </div>
       </div>
@@ -50,7 +50,7 @@ export default function HistoryPage() {
     <div className="max-w-lg mx-auto px-5 py-6 space-y-5">
       <div>
         <h2 className="text-2xl font-extrabold" data-testid="text-history-title">나의 기록</h2>
-        <p className="text-sm text-muted-foreground mt-1">매일 기록을 쌓아 변화를 확인해 보세요</p>
+        <p className="text-sm text-muted-foreground mt-1">꾸준히 기록하면 나의 변화가 보여요</p>
       </div>
 
       {averageScore !== null && (
@@ -82,7 +82,7 @@ export default function HistoryPage() {
           transition={{ delay: 0.1 }}
         >
           <Card className="p-6 rounded-2xl border-0" data-testid="chart-score-trend">
-            <h3 className="text-base font-bold mb-5">점수 변화</h3>
+            <h3 className="text-base font-bold mb-5">나의 변화 추이</h3>
             <div className="h-52">
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={chartData}>

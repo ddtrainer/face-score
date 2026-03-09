@@ -33,8 +33,8 @@ export default function HomePage() {
         if (!hasFace) {
           URL.revokeObjectURL(imageUrl);
           toast({
-            title: "얼굴을 찾을 수 없어요",
-            description: "사람의 얼굴이 잘 보이는 사진을 올려주세요. 셀카나 정면 사진이 좋아요!",
+            title: "앗, 얼굴이 잘 안 보여요",
+            description: "얼굴이 잘 나온 셀카나 정면 사진으로 다시 한번 시도해 주세요!",
             variant: "destructive",
           });
           return;
@@ -46,8 +46,8 @@ export default function HomePage() {
         setLocation("/result");
       } catch {
         toast({
-          title: "분석 실패",
-          description: "사진 분석 중 문제가 발생했어요. 다시 시도해 주세요.",
+          title: "잠시 문제가 생겼어요",
+          description: "다시 한번 시도해 주세요. 금방 해결될 거예요!",
           variant: "destructive",
         });
       } finally {
@@ -65,8 +65,8 @@ export default function HomePage() {
 
       if (!file.type.startsWith("image/")) {
         toast({
-          title: "잘못된 파일 형식",
-          description: "이미지 파일만 업로드할 수 있어요.",
+          title: "이미지 파일이 아니에요",
+          description: "사진 파일을 선택해 주세요.",
           variant: "destructive",
         });
         e.target.value = "";
@@ -134,10 +134,10 @@ export default function HomePage() {
             className="text-[28px] font-extrabold tracking-tight leading-tight"
             data-testid="text-main-copy"
           >
-            당신의 인상은 몇 점?
+            오늘의 나, 어떤 인상일까?
           </h2>
           <p className="text-[15px] text-muted-foreground leading-relaxed max-w-[280px] mx-auto" data-testid="text-description">
-            AI가 매일 당신의 표정을 분석해 점수와 맞춤 코칭을 제공해요.
+            매일 한 장의 사진으로 나만의 인상 코칭을 받아보세요.
           </p>
         </motion.div>
 
@@ -148,8 +148,8 @@ export default function HomePage() {
         >
           <Card className="p-7 rounded-2xl space-y-5 border-0 bg-gradient-to-b from-violet-50 to-white dark:from-violet-500/5 dark:to-card">
             <div className="text-center space-y-1">
-              <p className="text-base font-bold">사진을 올려주세요</p>
-              <p className="text-xs text-muted-foreground">셀카 또는 정면 사진이 좋아요</p>
+              <p className="text-base font-bold">오늘의 표정을 보여주세요</p>
+              <p className="text-xs text-muted-foreground">편안한 표정의 셀카가 가장 좋아요</p>
             </div>
 
             <div className="flex gap-3">
@@ -211,7 +211,7 @@ export default function HomePage() {
           data-testid="text-privacy-notice"
         >
           <Shield className="w-3.5 h-3.5" />
-          <span>사진은 기본적으로 저장되지 않습니다</span>
+          <span>사진은 분석 후 저장되지 않아요</span>
         </motion.div>
       </div>
     </>

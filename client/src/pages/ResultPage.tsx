@@ -27,9 +27,9 @@ export default function ResultPage() {
   const handleSave = () => {
     const saved = saveCurrentResult();
     if (saved) {
-      toast({ title: "저장 완료", description: "기록 화면에서 확인할 수 있어요." });
+      toast({ title: "저장 완료!", description: "기록 탭에서 나의 변화를 확인해 보세요." });
     } else {
-      toast({ title: "이미 저장되었어요!" });
+      toast({ title: "이미 저장된 결과예요!" });
     }
   };
 
@@ -49,7 +49,7 @@ export default function ResultPage() {
         >
           <img
             src={imageUrl}
-            alt="분석된 사진"
+            alt="오늘의 사진"
             className="w-full h-full object-cover"
             data-testid="img-uploaded-photo"
           />
@@ -62,7 +62,7 @@ export default function ResultPage() {
         transition={{ delay: 0.2 }}
         className="flex flex-col items-center py-2"
       >
-        <p className="text-[11px] font-semibold text-violet-500 uppercase tracking-widest mb-4">오늘의 인상 점수</p>
+        <p className="text-[11px] font-semibold text-violet-500 uppercase tracking-widest mb-4">오늘의 인상 코칭</p>
         <ScoreCircle score={analysisResult.totalScore} size="lg" />
       </motion.div>
 
@@ -72,7 +72,7 @@ export default function ResultPage() {
         transition={{ delay: 0.4 }}
       >
         <Card className="p-6 rounded-2xl space-y-5 border-0">
-          <h3 className="text-base font-bold">세부 분석</h3>
+          <h3 className="text-base font-bold">표정 분석 결과</h3>
           <div className="space-y-5">
             <TraitBar label="친근함" score={analysisResult.friendliness} icon="😊" delay={0.5} />
             <TraitBar label="생기" score={analysisResult.vitality} icon="✨" delay={0.65} />
@@ -108,7 +108,7 @@ export default function ResultPage() {
             <div className="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-500/15 flex items-center justify-center">
               <Lightbulb className="w-4 h-4 text-amber-600 dark:text-amber-400" />
             </div>
-            <h3 className="text-base font-bold">인상 코칭 팁</h3>
+            <h3 className="text-base font-bold">오늘의 코칭 팁</h3>
           </div>
           <ul className="space-y-3.5" data-testid="list-tips">
             {analysisResult.tips.map((tip, i) => (
@@ -131,7 +131,7 @@ export default function ResultPage() {
         data-testid="text-disclaimer"
       >
         <Info className="w-3.5 h-3.5 shrink-0" />
-        <span>이 결과는 참고용 분석이며 의학적 진단이 아닙니다</span>
+        <span>이 결과는 재미와 자기관리를 위한 참고용이에요</span>
       </motion.div>
 
       <motion.div
