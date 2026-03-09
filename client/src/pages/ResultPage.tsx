@@ -1,4 +1,4 @@
-import { useRef, useEffect } from "react";
+import { useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { RotateCcw, Save, Home, Lightbulb, Info } from "lucide-react";
@@ -6,55 +6,36 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import ScoreCircle from "@/components/ScoreCircle";
 import TraitBar from "@/components/TraitBar";
-import { saveRecord, generateId } from "@/lib/faceStorage";
-import type { AnalysisResult } from "@/lib/types";
+import { useAppState } from "@/lib/appState";
 import { useToast } from "@/hooks/use-toast";
 
-interface ResultPageProps {
-  result: AnalysisResult | null;
-  imageUrl: string | null;
-}
-
-export default function ResultPage({ result, imageUrl }: ResultPageProps) {
+export default function ResultPage() {
+  const { analysisResult, imageUrl, saveCurrentResult, clearAnalysisResult } = useAppState();
   const [, setLocation] = useLocation();
   const { toast } = useToast();
-  const savedRef = useRef(false);
 
   useEffect(() => {
-    if (!result) {
+    if (!analysisResult) {
       setLocation("/");
     }
-  }, [result, setLocation]);
+  }, [analysisResult, setLocation]);
 
-  useEffect(() => {
-    return () => {
-      if (imageUrl) {
-        URL.revokeObjectURL(imageUrl);
-      }
-    };
-  }, [imageUrl]);
-
-  if (!result) {
+  if (!analysisResult) {
     return null;
   }
 
   const handleSave = () => {
-    if (savedRef.current) {
+    const saved = saveCurrentResult();
+    if (saved) {
+      toast({ title: "저장 완료", description: "기록 화면에서 확인할 수 있어요." });
+    } else {
       toast({ title: "이미 저장되었어요!" });
-      return;
     }
-    saveRecord({
-      id: generateId(),
-      date: new Date().toISOString(),
-      totalScore: result.totalScore,
-      friendliness: result.friendliness,
-      vitality: result.vitality,
-      confidence: result.confidence,
-      summary: result.summary,
-      tips: result.tips,
-    });
-    savedRef.current = true;
-    toast({ title: "저장 완료", description: "기록 화면에서 확인할 수 있어요." });
+  };
+
+  const handleRetry = () => {
+    clearAnalysisResult();
+    setLocation("/");
   };
 
   return (
@@ -82,7 +63,7 @@ export default function ResultPage({ result, imageUrl }: ResultPageProps) {
         className="flex flex-col items-center"
       >
         <p className="text-sm text-muted-foreground mb-3">오늘의 인상 점수</p>
-        <ScoreCircle score={result.totalScore} size="lg" />
+        <ScoreCircle score={analysisResult.totalScore} size="lg" />
       </motion.div>
 
       <motion.div
@@ -93,9 +74,9 @@ export default function ResultPage({ result, imageUrl }: ResultPageProps) {
         <Card className="p-5 space-y-4">
           <h3 className="text-sm font-semibold">세부 분석</h3>
           <div className="space-y-4">
-            <TraitBar label="친근함" score={result.friendliness} icon="😊" delay={0.5} />
-            <TraitBar label="생기" score={result.vitality} icon="✨" delay={0.65} />
-            <TraitBar label="자신감" score={result.confidence} icon="💪" delay={0.8} />
+            <TraitBar label="친근함" score={analysisResult.friendliness} icon="😊" delay={0.5} />
+            <TraitBar label="생기" score={analysisResult.vitality} icon="✨" delay={0.65} />
+            <TraitBar label="자신감" score={analysisResult.confidence} icon="💪" delay={0.8} />
           </div>
         </Card>
       </motion.div>
@@ -107,7 +88,7 @@ export default function ResultPage({ result, imageUrl }: ResultPageProps) {
       >
         <Card className="p-5">
           <p className="text-sm font-medium leading-relaxed" data-testid="text-summary">
-            {result.summary}
+            {analysisResult.summary}
           </p>
         </Card>
       </motion.div>
@@ -123,7 +104,7 @@ export default function ResultPage({ result, imageUrl }: ResultPageProps) {
             <h3 className="text-sm font-semibold">더 좋은 인상을 위한 팁</h3>
           </div>
           <ul className="space-y-2.5" data-testid="list-tips">
-            {result.tips.map((tip, i) => (
+            {analysisResult.tips.map((tip, i) => (
               <li key={i} className="flex gap-2.5 text-sm text-muted-foreground">
                 <span className="text-primary font-bold shrink-0">{i + 1}.</span>
                 <span className="leading-relaxed">{tip}</span>
@@ -153,7 +134,7 @@ export default function ResultPage({ result, imageUrl }: ResultPageProps) {
         <Button
           variant="secondary"
           className="flex-1 gap-2"
-          onClick={() => setLocation("/")}
+          onClick={handleRetry}
           data-testid="button-retry"
         >
           <RotateCcw className="w-4 h-4" />

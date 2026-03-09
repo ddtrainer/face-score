@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useRef, useCallback } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Camera, Upload, Shield, ArrowRight } from "lucide-react";
@@ -7,22 +7,15 @@ import { Card } from "@/components/ui/card";
 import ScoreCircle from "@/components/ScoreCircle";
 import LoadingOverlay from "@/components/LoadingOverlay";
 import { analyzeFaceMock } from "@/lib/analysis";
-import { getLatestRecord } from "@/lib/faceStorage";
-import type { AnalysisResult } from "@/lib/types";
+import { useAppState } from "@/lib/appState";
 import { useToast } from "@/hooks/use-toast";
 
-interface HomePageProps {
-  onAnalysisComplete: (result: AnalysisResult, imageUrl: string) => void;
-}
-
-export default function HomePage({ onAnalysisComplete }: HomePageProps) {
-  const [isAnalyzing, setIsAnalyzing] = useState(false);
+export default function HomePage() {
+  const { isAnalyzing, setIsAnalyzing, setAnalysisResult, latestRecord } = useAppState();
   const [, setLocation] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
-
-  const latestRecord = getLatestRecord();
 
   const handleImageSelected = useCallback(
     async (file: File) => {
@@ -33,7 +26,7 @@ export default function HomePage({ onAnalysisComplete }: HomePageProps) {
         await new Promise((resolve) => setTimeout(resolve, 1500 + Math.random() * 1000));
         // 여기에 실제 AI API 연결 가능
         const result = await analyzeFaceMock();
-        onAnalysisComplete(result, imageUrl);
+        setAnalysisResult(result, imageUrl);
         setLocation("/result");
       } catch {
         toast({
@@ -45,7 +38,7 @@ export default function HomePage({ onAnalysisComplete }: HomePageProps) {
         setIsAnalyzing(false);
       }
     },
-    [onAnalysisComplete, setLocation, toast]
+    [setAnalysisResult, setIsAnalyzing, setLocation, toast]
   );
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {

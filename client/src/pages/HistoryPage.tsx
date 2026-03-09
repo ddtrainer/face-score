@@ -1,20 +1,17 @@
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { motion } from "framer-motion";
 import { TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 import EmptyState from "@/components/EmptyState";
-import { getRecords, getAverageScore } from "@/lib/faceStorage";
-import type { FaceRecord } from "@/lib/types";
+import { useAppState } from "@/lib/appState";
 
 export default function HistoryPage() {
-  const [records, setRecords] = useState<FaceRecord[]>([]);
-  const [averageScore, setAverageScore] = useState<number | null>(null);
+  const { records, averageScore, refreshRecords } = useAppState();
 
   useEffect(() => {
-    setRecords(getRecords());
-    setAverageScore(getAverageScore());
-  }, []);
+    refreshRecords();
+  }, [refreshRecords]);
 
   const recentSeven = records.slice(0, 7).reverse();
 
