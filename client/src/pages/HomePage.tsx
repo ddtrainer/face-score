@@ -15,10 +15,14 @@ export default function HomePage() {
   const [, setLocation] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
+  const processingRef = useRef(false);
   const { toast } = useToast();
 
   const handleImageSelected = useCallback(
     async (file: File) => {
+      if (processingRef.current) return;
+      processingRef.current = true;
+
       const imageUrl = URL.createObjectURL(file);
       setIsAnalyzing(true);
 
@@ -35,29 +39,69 @@ export default function HomePage() {
         });
       } finally {
         setIsAnalyzing(false);
+        processingRef.current = false;
       }
     },
     [setAnalysisResult, setIsAnalyzing, setLocation, toast]
   );
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
+  const handleFileChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+
       if (!file.type.startsWith("image/")) {
         toast({
           title: "잘못된 파일 형식",
           description: "이미지 파일만 업로드할 수 있어요.",
           variant: "destructive",
         });
+        e.target.value = "";
         return;
       }
+
       handleImageSelected(file);
+      e.target.value = "";
+    },
+    [handleImageSelected, toast]
+  );
+
+  const openFileUpload = useCallback(() => {
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+      fileInputRef.current.click();
     }
-  };
+  }, []);
+
+  const openCamera = useCallback(() => {
+    if (cameraInputRef.current) {
+      cameraInputRef.current.value = "";
+      cameraInputRef.current.click();
+    }
+  }, []);
 
   return (
     <>
       {isAnalyzing && <LoadingOverlay />}
+
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleFileChange}
+        data-testid="input-file-upload"
+      />
+      <input
+        ref={cameraInputRef}
+        type="file"
+        accept="image/*"
+        capture="environment"
+        className="hidden"
+        onChange={handleFileChange}
+        data-testid="input-camera-capture"
+      />
+
       <div className="max-w-lg mx-auto px-5 py-8 space-y-7">
         <motion.div
           initial={{ opacity: 0, y: 24 }}
@@ -98,7 +142,7 @@ export default function HomePage() {
             <div className="flex gap-3">
               <Button
                 className="flex-1 gap-2.5 h-14 text-[15px] font-semibold rounded-xl bg-gradient-to-r from-violet-600 to-indigo-500"
-                onClick={() => fileInputRef.current?.click()}
+                onClick={openFileUpload}
                 data-testid="button-upload"
               >
                 <Upload className="w-5 h-5" />
@@ -107,31 +151,13 @@ export default function HomePage() {
               <Button
                 className="flex-1 gap-2.5 h-14 text-[15px] font-semibold rounded-xl"
                 variant="secondary"
-                onClick={() => cameraInputRef.current?.click()}
+                onClick={openCamera}
                 data-testid="button-camera"
               >
                 <Camera className="w-5 h-5" />
                 카메라 촬영
               </Button>
             </div>
-
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*"
-              className="hidden"
-              onChange={handleFileChange}
-              data-testid="input-file-upload"
-            />
-            <input
-              ref={cameraInputRef}
-              type="file"
-              accept="image/*"
-              capture="user"
-              className="hidden"
-              onChange={handleFileChange}
-              data-testid="input-camera-capture"
-            />
           </Card>
         </motion.div>
 
