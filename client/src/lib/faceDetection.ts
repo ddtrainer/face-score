@@ -1,6 +1,3 @@
-// 여기에 실제 AI 얼굴 감지 API 연결 가능
-// Replace this with a real face detection API for production use
-
 interface FaceDetectionResult {
   hasFace: boolean;
 }
@@ -8,7 +5,6 @@ interface FaceDetectionResult {
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
     const img = new Image();
-    img.crossOrigin = "anonymous";
     img.onload = () => resolve(img);
     img.onerror = () => reject(new Error("이미지를 불러올 수 없어요."));
     img.src = src;
@@ -27,7 +23,25 @@ async function detectWithBrowserAPI(img: HTMLImageElement): Promise<boolean | nu
   }
 }
 
-function detectWithSkinTone(img: HTMLImageElement): boolean {
+function isSkinTone(r: number, g: number, b: number): boolean {
+  if (r < 80 || g < 30 || b < 15) return false;
+  if (r <= g || r <= b) return false;
+  if (r - g < 8) return false;
+  if (r - b < 12) return false;
+
+  const lum = 0.299 * r + 0.587 * g + 0.114 * b;
+  if (lum < 50 || lum > 240) return false;
+
+  const sum = r + g + b;
+  const rn = r / sum;
+  const gn = g / sum;
+  if (rn < 0.33 || rn > 0.58) return false;
+  if (gn < 0.18 || gn > 0.42) return false;
+
+  return true;
+}
+
+function detectWithCanvas(img: HTMLImageElement): boolean {
   const canvas = document.createElement("canvas");
   const maxSize = 200;
   const scale = Math.min(maxSize / img.width, maxSize / img.height, 1);
@@ -35,55 +49,40 @@ function detectWithSkinTone(img: HTMLImageElement): boolean {
   canvas.height = Math.round(img.height * scale);
 
   const ctx = canvas.getContext("2d");
-  if (!ctx) return false;
+  if (!ctx) return true;
 
   ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-  const centerX = Math.round(canvas.width * 0.25);
-  const centerY = Math.round(canvas.height * 0.15);
-  const regionW = Math.round(canvas.width * 0.5);
-  const regionH = Math.round(canvas.height * 0.5);
-
-  const imageData = ctx.getImageData(centerX, centerY, regionW, regionH);
-  const data = imageData.data;
-  const totalPixels = regionW * regionH;
+  const fullData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const data = fullData.data;
+  const totalPixels = canvas.width * canvas.height;
 
   let skinPixels = 0;
+  let greenDominant = 0;
+  let blueDominant = 0;
+  let veryBrightRed = 0;
 
   for (let i = 0; i < data.length; i += 4) {
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
 
-    if (isSkinTone(r, g, b)) {
-      skinPixels++;
-    }
+    if (isSkinTone(r, g, b)) skinPixels++;
+    if (g > r + 20 && g > b + 20 && g > 80) greenDominant++;
+    if (b > r + 20 && b > g + 20 && b > 80) blueDominant++;
+    if (r > 200 && g < 80 && b < 80) veryBrightRed++;
   }
 
   const skinRatio = skinPixels / totalPixels;
-  return skinRatio > 0.15;
-}
+  const greenRatio = greenDominant / totalPixels;
+  const blueRatio = blueDominant / totalPixels;
+  const redRatio = veryBrightRed / totalPixels;
 
-function isSkinTone(r: number, g: number, b: number): boolean {
-  if (r > 95 && g > 40 && b > 20) {
-    if (r > g && r > b) {
-      if (Math.abs(r - g) > 15) {
-        if (r - b > 15 && g - b > 0) {
-          return true;
-        }
-      }
-    }
-  }
+  if (greenRatio > 0.35) return false;
+  if (blueRatio > 0.35) return false;
+  if (redRatio > 0.25) return false;
 
-  if (r > 60 && g > 40 && b > 30) {
-    const max = Math.max(r, g, b);
-    const min = Math.min(r, g, b);
-    if (max - min > 15 && max - min < 130) {
-      if (r > g - 10 && r > b) {
-        return true;
-      }
-    }
-  }
+  if (skinRatio >= 0.15) return true;
 
   return false;
 }
@@ -97,8 +96,8 @@ export async function detectFace(imageUrl: string): Promise<FaceDetectionResult>
       return { hasFace: browserResult };
     }
 
-    const skinResult = detectWithSkinTone(img);
-    return { hasFace: skinResult };
+    const canvasResult = detectWithCanvas(img);
+    return { hasFace: canvasResult };
   } catch {
     return { hasFace: true };
   }

@@ -1,4 +1,4 @@
-import { useRef, useCallback } from "react";
+import { useRef, useCallback, useEffect } from "react";
 import { useLocation } from "wouter";
 import { motion } from "framer-motion";
 import { Camera, Upload, Shield, ChevronRight, Sparkles } from "lucide-react";
@@ -12,55 +12,72 @@ import { useAppState } from "@/lib/appState";
 import { useToast } from "@/hooks/use-toast";
 
 export default function HomePage() {
-  const { isAnalyzing, setIsAnalyzing, setAnalysisResult, latestRecord } = useAppState();
+  const { isAnalyzing, setIsAnalyzing, setAnalysisResult, analysisResult, latestRecord } = useAppState();
   const [, setLocation] = useLocation();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
   const processingRef = useRef(false);
+  const pendingNavRef = useRef(false);
   const { toast } = useToast();
 
-  const handleImageSelected = useCallback(
+  useEffect(() => {
+    if (pendingNavRef.current && analysisResult) {
+      pendingNavRef.current = false;
+      setLocation("/result");
+    }
+  }, [analysisResult, setLocation]);
+
+  const processFile = useCallback(
     async (file: File) => {
       if (processingRef.current) return;
       processingRef.current = true;
 
-      const imageUrl = URL.createObjectURL(file);
-      setIsAnalyzing(true);
+      let imageUrl: string | null = null;
 
       try {
+        imageUrl = URL.createObjectURL(file);
+        setIsAnalyzing(true);
+
         const { hasFace } = await detectFace(imageUrl);
 
         if (!hasFace) {
           URL.revokeObjectURL(imageUrl);
+          imageUrl = null;
+          setIsAnalyzing(false);
           toast({
             title: "앗, 얼굴이 잘 안 보여요",
             description: "얼굴이 잘 나온 셀카나 정면 사진으로 다시 한번 시도해 주세요!",
             variant: "destructive",
           });
+          processingRef.current = false;
           return;
         }
 
         await new Promise((resolve) => setTimeout(resolve, 1500 + Math.random() * 1000));
         const result = await analyzeFaceMock();
+        pendingNavRef.current = true;
         setAnalysisResult(result, imageUrl);
-        setLocation("/result");
+        setIsAnalyzing(false);
+        processingRef.current = false;
       } catch {
+        if (imageUrl) URL.revokeObjectURL(imageUrl);
+        setIsAnalyzing(false);
+        processingRef.current = false;
         toast({
           title: "잠시 문제가 생겼어요",
           description: "다시 한번 시도해 주세요. 금방 해결될 거예요!",
           variant: "destructive",
         });
-      } finally {
-        setIsAnalyzing(false);
-        processingRef.current = false;
       }
     },
-    [setAnalysisResult, setIsAnalyzing, setLocation, toast]
+    [setAnalysisResult, setIsAnalyzing, toast]
   );
 
   const handleFileChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0];
+      e.target.value = "";
+
       if (!file) return;
 
       if (!file.type.startsWith("image/")) {
@@ -69,14 +86,12 @@ export default function HomePage() {
           description: "사진 파일을 선택해 주세요.",
           variant: "destructive",
         });
-        e.target.value = "";
         return;
       }
 
-      handleImageSelected(file);
-      e.target.value = "";
+      processFile(file);
     },
-    [handleImageSelected, toast]
+    [processFile, toast]
   );
 
   const openFileUpload = useCallback(() => {
@@ -109,7 +124,7 @@ export default function HomePage() {
         ref={cameraInputRef}
         type="file"
         accept="image/*"
-        capture="environment"
+        capture="user"
         className="hidden"
         onChange={handleFileChange}
         data-testid="input-camera-capture"
