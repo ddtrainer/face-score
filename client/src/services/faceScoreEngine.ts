@@ -133,18 +133,9 @@ export function aggregateFrameSignals(frames: FaceFrameSignal[]): AggregatedFace
     captureQuality: clamp(f.captureQuality, 0, 1),
   }));
 
-  // 프레임이 없으면 안전한 중간값을 반환
+  // 프레임이 없으면 에러 — 얼굴 검증 없이 분석할 수 없습니다
   if (normalized.length === 0) {
-    return {
-      mouthSoftness: 0.5,
-      eyeTension: 0.4,
-      browTension: 0.35,
-      gazeStability: 0.6,
-      headStability: 0.55,
-      expressionConsistency: 0.6,
-      naturalSmileIndex: 0.5,
-      captureQuality: 0.6,
-    };
+    throw new Error("분석할 프레임이 없습니다. 얼굴 검증을 먼저 통과해야 합니다.");
   }
 
   // 프레임이 1~2개면 극단값 제거 없이 단순 평균
