@@ -1,0 +1,19 @@
+export interface FaceRecord {
+  id: string;
+  date: string;
+  totalScore: number;
+  friendliness: number;
+  vitality: number;
+  confidence: number;
+  summary: string;
+  tips: string[];
+}
+
+export interface AnalysisResult {
+  friendliness: number;
+  vitality: number;
+  confidence: number;
+  totalScore: number;
+  summary: string;
+  tips: string[];
+}
